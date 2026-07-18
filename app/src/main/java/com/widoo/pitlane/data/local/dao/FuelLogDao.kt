@@ -1,0 +1,26 @@
+package com.widoo.pitlane.data.local.dao
+
+import androidx.room.*
+import com.widoo.pitlane.data.local.entity.FuelLogEntity
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface FuelLogDao {
+    @Query("SELECT * FROM fuel_logs ORDER BY date DESC")
+    fun getAll(): Flow<List<FuelLogEntity>>
+
+    @Query("SELECT * FROM fuel_logs ORDER BY date DESC LIMIT 1")
+    suspend fun getLatest(): FuelLogEntity?
+
+    @Query("SELECT SUM(totalCost) FROM fuel_logs WHERE date >= :fromDate")
+    suspend fun getTotalCostSince(fromDate: Long): Double?
+
+    @Query("SELECT SUM(liters) FROM fuel_logs WHERE date >= :fromDate")
+    suspend fun getTotalLitersSince(fromDate: Long): Double?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(log: FuelLogEntity): Long
+
+    @Delete
+    suspend fun delete(log: FuelLogEntity)
+}
