@@ -7,9 +7,11 @@ import com.widoo.pitlane.data.repository.ServiceRepository
 import com.widoo.pitlane.data.repository.FuelRepository
 import com.widoo.pitlane.data.repository.ReminderRepository
 import com.widoo.pitlane.data.repository.VehicleRepository
+import com.widoo.pitlane.ui.screen.charts.ChartsViewModel
 import com.widoo.pitlane.ui.screen.fuel.FuelViewModel
 import com.widoo.pitlane.ui.screen.home.HomeViewModel
 import com.widoo.pitlane.ui.screen.onboarding.OnboardingViewModel
+import com.widoo.pitlane.ui.screen.reminder.ReminderViewModel
 import com.widoo.pitlane.ui.screen.service.ServiceViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
@@ -35,15 +37,17 @@ val appModule = module {
     single { ReminderRepository(get()) }
 
 
-    viewModel { HomeViewModel(get(), get(), get()) }
 
     single { PreferencesManager(androidContext()) }
     viewModel { OnboardingViewModel(get(), get()) }
-    viewModel { HomeViewModel(get(), get(), get()) }
-
+    viewModel { HomeViewModel(get(), get(), get(), get()) }
 
     viewModel { ServiceViewModel(get(), get(), get()) }
     viewModel { FuelViewModel(get(), get(), get()) }
 
+    viewModel { ChartsViewModel(get(), get()) }
 
+    viewModel { ReminderViewModel(get(), get()) }
+
+    viewModel { ReminderViewModel(get(), androidContext()) }
 }

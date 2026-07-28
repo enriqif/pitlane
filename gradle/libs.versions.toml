@@ -16,11 +16,12 @@ navigationCompose = "2.8.3"
 room = "2.7.0"
 koin = "4.0.0"
 workManager = "2.9.1"
-vicoCompose = "2.0.0-beta.2"
+vicoCompose = "2.0.0-beta.4"
 datastore = "1.1.1"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
+androidx-compose-foundation-layout = { module = "androidx.compose.foundation:foundation-layout" }
 androidx-compose-ui-text-google-fonts = { module = "androidx.compose.ui:ui-text-google-fonts" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

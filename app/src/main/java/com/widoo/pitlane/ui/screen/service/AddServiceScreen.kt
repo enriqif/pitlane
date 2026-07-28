@@ -64,6 +64,7 @@ fun AddServiceScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .imePadding()
     ) {
         // Top bar
         Row(
@@ -286,6 +287,7 @@ fun AddServiceScreen(
             )
         }
 
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         // Botón guardar
         Column(
             modifier = Modifier
@@ -348,6 +350,7 @@ private fun SectionTitle(title: String) {
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ChipSelector(
     label: String,
@@ -361,32 +364,40 @@ private fun ChipSelector(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            options.forEach { option ->
-                val isSelected = selected == option
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { onSelect(option) },
-                    label = {
-                        Text(
-                            option,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = ElectricCyan.copy(alpha = 0.2f),
-                        selectedLabelColor = ElectricCyan
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
+        val chunked = options.chunked(3)
+        chunked.forEach { rowItems ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                rowItems.forEach { option ->
+                    val isSelected = selected == option
+                    FilterChip(
                         selected = isSelected,
-                        selectedBorderColor = ElectricCyan,
-                        borderColor = MaterialTheme.colorScheme.outlineVariant
+                        onClick = { onSelect(option) },
+                        label = {
+                            Text(
+                                option,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = ElectricCyan.copy(alpha = 0.2f),
+                            selectedLabelColor = ElectricCyan
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = isSelected,
+                            selectedBorderColor = ElectricCyan,
+                            borderColor = MaterialTheme.colorScheme.outlineVariant
+                        )
                     )
-                )
+                }
+
+                // Fill remaining space if row has less than 3 items
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
     }

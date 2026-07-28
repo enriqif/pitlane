@@ -2,13 +2,13 @@ package com.widoo.pitlane.ui.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -33,9 +33,9 @@ import com.widoo.pitlane.ui.screen.service.ServiceScreen
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Home : Screen("home", "Inicio", Icons.Filled.Home)
     object Service : Screen("service", "Servicios", Icons.Filled.Build)
-    object Fuel : Screen("fuel", "Combustible", Icons.Filled.LocalGasStation)
+    object Fuel : Screen("fuel", "Nafta", Icons.Filled.LocalGasStation)
     object Charts : Screen("charts", "Gráficos", Icons.Filled.BarChart)
-    object Reminder : Screen("reminder", "Recordatorios", Icons.Filled.Notifications)
+    object Reminder : Screen("reminder", "Alertas", Icons.Filled.Notifications)
 }
 
 val bottomNavItems = listOf(
@@ -62,7 +62,14 @@ fun AppNavigation() {
                 bottomNavItems.forEach { screen ->
                     NavigationBarItem(
                         icon = { Icon(screen.icon, contentDescription = screen.label) },
-                        label = { Text(screen.label) },
+                        label = {
+                            Text(
+                                text = screen.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        },
                         selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                         onClick = {
                             navController.navigate(screen.route) {

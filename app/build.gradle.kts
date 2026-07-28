@@ -1,8 +1,14 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
+
+val localProps = Properties()
+val localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) localProps.load(localPropsFile.inputStream())
 
 android {
     namespace = "com.widoo.pitlane"
@@ -17,7 +23,36 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file(localProps["KEYSTORE_PATH"] as String)
+            storePassword = localProps["KEYSTORE_PASSWORD"] as String
+            keyAlias = localProps["KEY_ALIAS"] as String
+            keyPassword = localProps["KEY_PASSWORD"] as String
+        }
+    }
+
+    flavorDimensions += "environment"
+
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            manifestPlaceholders["appName"] = "Pitlane Dev"
+        }
+        create("prod") {
+            dimension = "environment"
+            applicationIdSuffix = ""
+            versionNameSuffix = ""
+            manifestPlaceholders["appName"] = "Pitlane"
+        }
+    }
+
     buildTypes {
+        debug {
+            isMinifyEnabled = false
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -38,7 +73,13 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
+
+    androidResources {
+        generateLocaleConfig = false
+    }
+    resourcePrefix = ""
 }
 
 dependencies {
@@ -62,6 +103,7 @@ dependencies {
     implementation(libs.androidx.datastore)
     implementation(libs.androidx.compose.ui.text.google.fonts)
     implementation(libs.accompanist.permissions)
+    implementation(libs.androidx.compose.foundation.layout)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
