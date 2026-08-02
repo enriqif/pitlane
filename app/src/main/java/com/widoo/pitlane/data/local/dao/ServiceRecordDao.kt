@@ -9,6 +9,9 @@ interface ServiceRecordDao {
     @Query("SELECT * FROM service_records ORDER BY date DESC")
     fun getAll(): Flow<List<ServiceRecordEntity>>
 
+    @Query("SELECT * FROM service_records WHERE vehicleId = :vehicleId ORDER BY date DESC")
+    fun getByVehicle(vehicleId: Long): Flow<List<ServiceRecordEntity>>
+
     @Query("SELECT * FROM service_records ORDER BY date DESC LIMIT 1")
     suspend fun getLatest(): ServiceRecordEntity?
 

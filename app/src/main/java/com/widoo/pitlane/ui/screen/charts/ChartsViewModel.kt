@@ -6,9 +6,13 @@ import com.widoo.pitlane.data.local.entity.FuelLogEntity
 import com.widoo.pitlane.data.local.entity.ServiceRecordEntity
 import com.widoo.pitlane.data.repository.FuelRepository
 import com.widoo.pitlane.data.repository.ServiceRepository
+import com.widoo.pitlane.data.repository.VehicleRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import java.util.Calendar
 
@@ -28,33 +32,35 @@ data class ChartsUiState(
 )
 
 class ChartsViewModel(
-    private val serviceRepository: ServiceRepository,
-    private val fuelRepository: FuelRepository
+    serviceRepository: ServiceRepository,
+    fuelRepository: FuelRepository,
+    private val vehicleRepository: VehicleRepository
 ) : ViewModel() {
 
-    val uiState: StateFlow<ChartsUiState> = combine(
-        serviceRepository.getAll(),
-        fuelRepository.getAll()
-    ) { services, fuelLogs ->
-
-        val monthlyData = buildMonthlyData(services, fuelLogs)
-        val totalYear = calculateYearTotal(services, fuelLogs)
-        val avgKm = calculateAvgKmBetweenServices(services)
-        val avgConsumption = calculateAvgConsumption(fuelLogs)
-
-        ChartsUiState(
-            services = services,
-            fuelLogs = fuelLogs,
-            monthlyData = monthlyData,
-            totalYearSpend = totalYear,
-            avgKmBetweenServices = avgKm,
-            avgConsumption = avgConsumption
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<ChartsUiState> = vehicleRepository
+        .getActive()
+        .flatMapLatest { vehicle ->
+            if (vehicle == null) return@flatMapLatest flowOf(ChartsUiState())
+            combine(
+                serviceRepository.getByVehicle(vehicle.id),
+                fuelRepository.getByVehicle(vehicle.id)
+            ) { services, fuelLogs ->
+                ChartsUiState(
+                    services = services,
+                    fuelLogs = fuelLogs,
+                    monthlyData = buildMonthlyData(services, fuelLogs),
+                    totalYearSpend = calculateYearTotal(services, fuelLogs),
+                    avgKmBetweenServices = calculateAvgKmBetweenServices(services),
+                    avgConsumption = calculateAvgConsumption(fuelLogs)
+                )
+            }
+        }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            ChartsUiState()
         )
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        ChartsUiState()
-    )
 
     private fun buildMonthlyData(
         services: List<ServiceRecordEntity>,

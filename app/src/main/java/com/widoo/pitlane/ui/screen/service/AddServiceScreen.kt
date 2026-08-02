@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,7 +20,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.widoo.pitlane.data.local.entity.VehicleEntity
+import com.widoo.pitlane.ui.screen.profile.VehicleSelector
 import com.widoo.pitlane.ui.theme.ElectricCyan
 import org.koin.androidx.compose.koinViewModel
 
@@ -54,6 +58,8 @@ fun AddServiceScreen(
     viewModel: ServiceViewModel = koinViewModel()
 ) {
     val state by viewModel.addState.collectAsState()
+    val vehicles by viewModel.vehicles.collectAsState()
+
     var serviceTypeExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.isSaved) {
@@ -101,6 +107,13 @@ fun AddServiceScreen(
         ) {
             // SECCIÓN 1 — General
             SectionTitle("General")
+
+            // Selector de vehículo — solo aparece si hay más de 1
+            VehicleSelector(
+                vehicles = vehicles,
+                selectedVehicleName = state.selectedVehicleName,
+                onVehicleSelected = viewModel::onVehicleSelected
+            )
 
             // Km actual
             PitlaneTextField(
@@ -433,7 +446,7 @@ private fun PitlaneTextField(
 }
 
 @Composable
-private fun pitlaneTextFieldColors() = OutlinedTextFieldDefaults.colors(
+fun pitlaneTextFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = ElectricCyan,
     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
     focusedLabelColor = ElectricCyan,

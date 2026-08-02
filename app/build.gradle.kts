@@ -1,4 +1,10 @@
+import AppVersion.getVersionCode
+import AppVersion.getVersionName
+import org.gradle.language.nativeplatform.internal.Dimensions.applicationVariants
 import java.util.Properties
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
 
 plugins {
     alias(libs.plugins.android.application)
@@ -11,41 +17,39 @@ val localPropsFile = rootProject.file("local.properties")
 if (localPropsFile.exists()) localProps.load(localPropsFile.inputStream())
 
 android {
-    namespace = "com.widoo.pitlane"
-    compileSdk = 36
+    namespace = AppConfig.NAMESPACE
+    compileSdk = AppConfig.COMPILE_SDK
 
     defaultConfig {
-        applicationId = "com.widoo.pitlane"
-        minSdk = 26
-        targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        applicationId = AppConfig.APPLICATION_ID
+        minSdk = AppConfig.MIN_SDK
+        targetSdk = AppConfig.TARGET_SDK
+        versionCode = AppVersion.getVersionCode()
+        versionName = AppVersion.getVersionName()
+        testInstrumentationRunner = AppConfig.TEST_INSTRUMENTATION_RUNNER
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = file(localProps["KEYSTORE_PATH"] as String)
-            storePassword = localProps["KEYSTORE_PASSWORD"] as String
-            keyAlias = localProps["KEY_ALIAS"] as String
-            keyPassword = localProps["KEY_PASSWORD"] as String
+        create(AppConfig.SIGNING_CONFIG_RELEASE) {
+            storeFile = file(localProps.getProperty("KEYSTORE_PATH"))
+            storePassword = localProps.getProperty("KEYSTORE_PASSWORD")
+            keyAlias = localProps.getProperty("KEY_ALIAS")
+            keyPassword = localProps.getProperty("KEY_PASSWORD")
         }
     }
 
-    flavorDimensions += "environment"
+    flavorDimensions += Flavors.DIMENSION
 
     productFlavors {
-        create("dev") {
-            dimension = "environment"
-            applicationIdSuffix = ".dev"
-            versionNameSuffix = "-dev"
-            manifestPlaceholders["appName"] = "Pitlane Dev"
+        create(Flavors.DEV) {
+            dimension = Flavors.DIMENSION
+            applicationIdSuffix = ".${Flavors.DEV}"
+            versionNameSuffix = "-${Flavors.DEV}"
+            manifestPlaceholders["appName"] = Flavors.AppNames.DEV
         }
-        create("prod") {
-            dimension = "environment"
-            applicationIdSuffix = ""
-            versionNameSuffix = ""
-            manifestPlaceholders["appName"] = "Pitlane"
+        create(Flavors.PROD) {
+            dimension = Flavors.DIMENSION
+            manifestPlaceholders["appName"] = Flavors.AppNames.PROD
         }
     }
 
@@ -55,6 +59,7 @@ android {
         }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName(AppConfig.SIGNING_CONFIG_RELEASE)
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -79,6 +84,7 @@ android {
     androidResources {
         generateLocaleConfig = false
     }
+
     resourcePrefix = ""
 }
 
@@ -112,4 +118,38 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+afterEvaluate {
+    tasks.matching { it.name.startsWith("bundle") && it.name.endsWith("Release") }
+        .configureEach {
+            doLast {
+                val flavorName = name
+                    .removePrefix("bundle")
+                    .removeSuffix("Release")
+                    .replaceFirstChar { it.lowercase() }
+
+                val date = SimpleDateFormat("yyyyMMdd").format(Date())
+                val versionName = AppVersion.getVersionName()
+                val versionCode = AppVersion.getVersionCode()
+                val newName = "pitlane-${flavorName}-release-v${versionName}(${versionCode})-${date}.aab"
+
+                // El AAB está en app/prod/release/, no en app/build/
+                val outputDir = project.file("${flavorName}/release")
+
+                println(">>> Buscando en: ${outputDir.absolutePath}")
+
+                if (outputDir.exists()) {
+                    outputDir.listFiles()?.forEach { file ->
+                        if (file.extension == "aab") {
+                            val renamed = File(outputDir, newName)
+                            val success = file.renameTo(renamed)
+                            println(">>> ✅ ${file.name} → ${renamed.name} (success=$success)")
+                        }
+                    }
+                } else {
+                    println(">>> ❌ Directorio no existe: ${outputDir.absolutePath}")
+                }
+            }
+        }
 }

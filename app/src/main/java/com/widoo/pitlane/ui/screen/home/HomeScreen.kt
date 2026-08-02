@@ -4,24 +4,30 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.widoo.pitlane.ui.theme.ElectricCyan
-import com.widoo.pitlane.ui.theme.PrimaryContainer
 import org.koin.androidx.compose.koinViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -68,6 +74,9 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
 
         // Vehicle card
         state.vehicle?.let { vehicle ->
+            var showEditKmDialog by remember { mutableStateOf(false) }
+            var kmInput by remember { mutableStateOf("") }
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -105,6 +114,21 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                 fontWeight = FontWeight.Bold,
                                 color = ElectricCyan
                             )
+                            // Botón editar km
+                            IconButton(
+                                onClick = {
+                                    kmInput = vehicle.currentKm.toString()
+                                    showEditKmDialog = true
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Edit,
+                                    contentDescription = "Editar km",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                         Surface(
                             shape = RoundedCornerShape(20.dp),
@@ -133,6 +157,82 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                         )
                     }
                 }
+            }
+
+            // Dialog editar km
+            if (showEditKmDialog) {
+                AlertDialog(
+                    onDismissRequest = { showEditKmDialog = false },
+                    title = {
+                        Text(
+                            text = "Actualizar kilometraje",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = "Ingresá el kilometraje actual de tu vehículo",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            OutlinedTextField(
+                                value = kmInput,
+                                onValueChange = { if (it.length <= 7) kmInput = it },
+                                label = { Text("Kilometraje") },
+                                suffix = { Text("km", color = ElectricCyan) },
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number,
+                                    imeAction = ImeAction.Done
+                                ),
+                                singleLine = true,
+                                shape = RoundedCornerShape(8.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = ElectricCyan,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                    focusedLabelColor = ElectricCyan,
+                                    cursorColor = ElectricCyan
+                                )
+                            )
+                            // Validación
+                            val kmValue = kmInput.toIntOrNull() ?: 0
+                            if (kmValue > 0) {
+                                Text(
+                                    text = "El kilometraje no puede ser 0)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        val kmValue = kmInput.toIntOrNull() ?: 0
+                        Button(
+                            onClick = {
+                                if (kmValue >= vehicle.currentKm) {
+                                    viewModel.updateCurrentKm(kmValue)
+                                    showEditKmDialog = false
+                                }
+                            },
+                            enabled = kmInput.isNotBlank() &&
+                                    (kmInput.toIntOrNull() ?: 0) >= vehicle.currentKm,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ElectricCyan,
+                                contentColor = Color.Black
+                            )
+                        ) {
+                            Text("Guardar", fontWeight = FontWeight.Bold, color = Color.Black)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showEditKmDialog = false }) {
+                            Text("Cancelar")
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    shape = RoundedCornerShape(16.dp)
+                )
             }
         } ?: run {
             // Empty vehicle state
@@ -221,12 +321,14 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 label = "Servicios",
                 icon = "🔧"
             )
+
             StatCard(
                 modifier = Modifier.weight(1f),
                 value = "${state.fuelLogs.size}",
                 label = "Cargas",
                 icon = "⛽"
             )
+
             StatCard(
                 modifier = Modifier.weight(1f),
                 value = "${state.pendingReminders.size}",
@@ -237,6 +339,8 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 else
                     MaterialTheme.colorScheme.onSurface
             )
+
+            StatsSection(state = state, numFormat = numFormat)
         }
 
         // Last service card with progress
@@ -426,6 +530,200 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun StatsSection(
+    state: HomeUiState,
+    numFormat: NumberFormat
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
+        Text(
+            text = "Resumen",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        // Gasto este mes vs mes anterior
+        if (state.fuelCostThisMonth > 0 || state.fuelCostLastMonth > 0) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "COMBUSTIBLE ESTE MES",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = "$${numFormat.format(state.fuelCostThisMonth)}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = ElectricCyan
+                    )
+                    if (state.fuelCostLastMonth > 0) {
+                        val diff = state.fuelCostThisMonth - state.fuelCostLastMonth
+                        val diffPercent = (diff / state.fuelCostLastMonth) * 100
+                        val isUp = diff > 0
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = if (isUp) "▲" else "▼",
+                                color = if (isUp) MaterialTheme.colorScheme.error
+                                else Color(0xFF4CAF50),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                            Text(
+                                text = "${String.format("%.1f", Math.abs(diffPercent))}% " +
+                                        "vs mes anterior",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isUp) MaterialTheme.colorScheme.error
+                                else Color(0xFF4CAF50)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Consumo promedio con trend
+        if (state.avgConsumption > 0) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "CONSUMO PROMEDIO",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "${String.format("%.1f", state.avgConsumption)} L/100km",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    if (state.consumptionTrend != 0f) {
+                        val improved = state.consumptionTrend > 0
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (improved) Color(0xFF4CAF50).copy(alpha = 0.15f)
+                            else MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                text = if (improved) "↑ Mejoró" else "↓ Empeoró",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (improved) Color(0xFF4CAF50)
+                                else MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(
+                                    horizontal = 10.dp,
+                                    vertical = 6.dp
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Días desde última carga
+        if (state.daysSinceLastFuel > 0) {
+            InsightCard(
+                emoji = "⛽",
+                text = when {
+                    state.daysSinceLastFuel == 1 -> "Cargaste nafta ayer"
+                    state.daysSinceLastFuel < 7 -> "Hace ${state.daysSinceLastFuel} días que no cargás nafta"
+                    state.daysSinceLastFuel < 30 -> "Hace ${state.daysSinceLastFuel} días sin cargar — ¿cómo va el tanque?"
+                    else -> "Hace más de un mes sin registrar una carga"
+                }
+            )
+        }
+
+        // Días desde último service
+        if (state.daysSinceLastService > 0) {
+            InsightCard(
+                emoji = "🔧",
+                text = when {
+                    state.daysSinceLastService < 30 -> "Último service hace ${state.daysSinceLastService} días — todo en orden"
+                    state.daysSinceLastService < 90 -> "Hace ${state.daysSinceLastService} días del último service"
+                    state.daysSinceLastService < 180 -> "Hace ${state.daysSinceLastService} días sin service — ¿cómo va el aceite?"
+                    else -> "Más de 6 meses sin service — ¡es momento de revisarlo!"
+                },
+                isWarning = state.daysSinceLastService >= 180
+            )
+        }
+
+        // Total gastado este año
+        if (state.totalSpentThisYear > 0) {
+            InsightCard(
+                emoji = "💰",
+                text = "Gastaste $${numFormat.format(state.totalSpentThisYear)} en tu auto este año"
+            )
+        }
+    }
+}
+
+@Composable
+private fun InsightCard(
+    emoji: String,
+    text: String,
+    isWarning: Boolean = false
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isWarning)
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
+            else
+                MaterialTheme.colorScheme.surfaceContainerHigh
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(emoji, fontSize = 24.sp)
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isWarning)
+                    MaterialTheme.colorScheme.error
+                else
+                    MaterialTheme.colorScheme.onSurface,
+                lineHeight = 20.sp
+            )
         }
     }
 }

@@ -5,11 +5,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.widoo.pitlane.data.local.entity.ReminderEntity
 import com.widoo.pitlane.data.repository.ReminderRepository
+import com.widoo.pitlane.data.repository.VehicleRepository
 import com.widoo.pitlane.worker.ReminderScheduler
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -30,17 +35,26 @@ data class AddReminderUiState(
 
 class ReminderViewModel(
     private val reminderRepository: ReminderRepository,
+    private val vehicleRepository: VehicleRepository,
     private val context: Context
 ) : ViewModel() {
-
-    val pendingReminders: StateFlow<List<ReminderEntity>> = reminderRepository
-        .getPending()
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val pendingReminders: StateFlow<List<ReminderEntity>> = vehicleRepository
+        .getActive()
+        .flatMapLatest { vehicle ->
+            vehicle?.let { reminderRepository.getPendingByVehicle(it.id) }
+                ?: flowOf(emptyList())
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val completedReminders: StateFlow<List<ReminderEntity>> = reminderRepository
-        .getAll()
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val completedReminders: StateFlow<List<ReminderEntity>> = vehicleRepository
+        .getActive()
+        .flatMapLatest { vehicle ->
+            vehicle?.let { reminderRepository.getAllByVehicle(it.id) }
+                ?: flowOf(emptyList())
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
     private val _addState = MutableStateFlow(AddReminderUiState())
     val addState: StateFlow<AddReminderUiState> = _addState.asStateFlow()
 
@@ -64,9 +78,11 @@ class ReminderViewModel(
             _addState.value = _addState.value.copy(isLoading = true)
             try {
                 val s = _addState.value
+                val vehicle = vehicleRepository.getActive().first()
+                val vehicleId = vehicle?.id ?: 0L
                 val notificationId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
 
-                val id = reminderRepository.insert(
+                reminderRepository.insert(
                     ReminderEntity(
                         vehicleId = 0L,
                         title = s.title.trim(),

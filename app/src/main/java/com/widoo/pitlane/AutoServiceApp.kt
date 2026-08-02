@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import com.widoo.pitlane.di.appModule
+import com.widoo.pitlane.worker.SmartNotificationScheduler
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
@@ -17,6 +18,7 @@ class AutoServiceApp : Application() {
             modules(appModule)
         }
         createNotificationChannel()
+        SmartNotificationScheduler.scheduleMonthlyKmReminder(this)
     }
 
     private fun createNotificationChannel() {

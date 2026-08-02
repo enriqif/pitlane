@@ -22,6 +22,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.widoo.pitlane.data.local.entity.FuelLogEntity
+import com.widoo.pitlane.data.local.entity.VehicleEntity
+import com.widoo.pitlane.ui.screen.profile.VehicleSelector
 import com.widoo.pitlane.ui.theme.ElectricCyan
 import com.widoo.pitlane.ui.theme.PrimaryContainer
 import org.koin.androidx.compose.koinViewModel
@@ -33,6 +35,7 @@ import java.util.*
 fun FuelScreen(viewModel: FuelViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsState()
     val addState by viewModel.addState.collectAsState()
+    val vehicles by viewModel.vehicles.collectAsState()
     var showAddSheet by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -177,6 +180,7 @@ fun FuelScreen(viewModel: FuelViewModel = koinViewModel()) {
     if (showAddSheet) {
         AddFuelSheet(
             viewModel = viewModel,
+            vehicles = vehicles,
             onDismiss = { showAddSheet = false },
             onSaved = { showAddSheet = false }
         )
@@ -381,6 +385,7 @@ private fun FuelLogCard(log: FuelLogEntity) {
 @Composable
 private fun AddFuelSheet(
     viewModel: FuelViewModel,
+    vehicles: List<VehicleEntity>,
     onDismiss: () -> Unit,
     onSaved: () -> Unit
 ) {
@@ -393,6 +398,7 @@ private fun AddFuelSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
     ) {
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -406,6 +412,12 @@ private fun AddFuelSheet(
                 text = "Nueva carga",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
+            )
+
+            VehicleSelector(
+                vehicles = vehicles,
+                selectedVehicleName = state.selectedVehicleName,
+                onVehicleSelected = viewModel::onVehicleSelected
             )
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

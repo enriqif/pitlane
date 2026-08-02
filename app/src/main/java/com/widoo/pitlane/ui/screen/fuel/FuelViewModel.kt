@@ -1,5 +1,6 @@
 package com.widoo.pitlane.ui.screen.fuel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.widoo.pitlane.data.local.PreferencesManager
@@ -7,12 +8,17 @@ import com.widoo.pitlane.data.local.entity.FuelLogEntity
 import com.widoo.pitlane.data.local.entity.VehicleEntity
 import com.widoo.pitlane.data.repository.FuelRepository
 import com.widoo.pitlane.data.repository.VehicleRepository
+import com.widoo.pitlane.worker.SmartNotificationScheduler
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -27,6 +33,8 @@ data class FuelComparisonData(
 )
 
 data class AddFuelUiState(
+    val selectedVehicleId: Long = -1L,      // ← nuevo
+    val selectedVehicleName: String = "",    // ← nuevo
     val date: Long = System.currentTimeMillis(),
     val km: String = "",
     val liters: String = "",
@@ -53,28 +61,54 @@ data class FuelUiState(
 class FuelViewModel(
     private val fuelRepository: FuelRepository,
     private val vehicleRepository: VehicleRepository,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val context: Context
 ) : ViewModel() {
 
-    val uiState: StateFlow<FuelUiState> = combine(
-        fuelRepository.getAll(),
-        vehicleRepository.getActive()
-    ) { logs, vehicle ->
-        FuelUiState(
-            fuelLogs = logs,
-            vehicle = vehicle,
-            monthlyTotal = calculateMonthlyTotal(logs),
-            avgConsumption = calculateAvgConsumption(logs),
-            comparison = buildComparison(logs)
-        )
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        FuelUiState()
-    )
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<FuelUiState> = vehicleRepository
+        .getActive()
+        .flatMapLatest { vehicle ->
+            if (vehicle == null) return@flatMapLatest flowOf(FuelUiState())
+            fuelRepository.getByVehicle(vehicle.id).map { logs ->
+                FuelUiState(
+                    fuelLogs = logs,
+                    vehicle = vehicle,
+                    monthlyTotal = calculateMonthlyTotal(logs),
+                    avgConsumption = calculateAvgConsumption(logs),
+                    comparison = buildComparison(logs)
+                )
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), FuelUiState())
 
     private val _addState = MutableStateFlow(AddFuelUiState())
     val addState: StateFlow<AddFuelUiState> = _addState.asStateFlow()
+    val vehicles: StateFlow<List<VehicleEntity>> = vehicleRepository
+        .getAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    init {
+        viewModelScope.launch {
+            vehicleRepository.getActive().collect { vehicle ->
+                vehicle?.let {
+                    if (_addState.value.selectedVehicleId == -1L) {
+                        _addState.value = _addState.value.copy(
+                            selectedVehicleId = it.id,
+                            selectedVehicleName = "${it.brand} ${it.model}"
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun onVehicleSelected(vehicle: VehicleEntity) {
+        _addState.value = _addState.value.copy(
+            selectedVehicleId = vehicle.id,
+            selectedVehicleName = "${vehicle.brand} ${vehicle.model}"
+        )
+    }
 
     fun onKmChange(v: String) {
         _addState.value = _addState.value.copy(km = v, kmError = null)
@@ -218,24 +252,38 @@ class FuelViewModel(
         viewModelScope.launch {
             _addState.value = _addState.value.copy(isLoading = true)
             try {
-                val vehicleId = preferencesManager.activeVehicleId.first()
-                val s = _addState.value
-                val liters = s.liters.toDoubleOrNull() ?: 0.0
-                val price = s.pricePerLiter.toDoubleOrNull() ?: 0.0
-                val total = s.totalCost.toDoubleOrNull() ?: (liters * price)
-                val km = s.km.toIntOrNull() ?: 0
+                val state = _addState.value
+                val vehicleId = if (state.selectedVehicleId != -1L)
+                    state.selectedVehicleId
+                else
+                    preferencesManager.activeVehicleId.first()
+
+                val liters = state.liters.toDoubleOrNull() ?: 0.0
+                val price = state.pricePerLiter.toDoubleOrNull() ?: 0.0
+                val total = state.totalCost.toDoubleOrNull() ?: (liters * price)
+                val km = state.km.toIntOrNull() ?: 0
 
                 fuelRepository.insert(
                     FuelLogEntity(
                         vehicleId = vehicleId,
-                        date = s.date,
+                        date = state.date,
                         km = km,
                         liters = liters,
                         pricePerLiter = price,
                         totalCost = total,
-                        station = s.station
+                        station = state.station
                     )
                 )
+                // Verificar precio vs carga anterior
+                val previousLog = uiState.value.fuelLogs.firstOrNull()
+                if (previousLog != null && price > 0) {
+                    SmartNotificationScheduler.checkFuelPriceIncrease(
+                        context = context,
+                        currentPrice = price,
+                        previousPrice = previousLog.pricePerLiter,
+                        station = state.station.ifBlank { "la estación" }
+                    )
+                }
                 if (km > 0) vehicleRepository.updateKm(vehicleId, km)
                 _addState.value = AddFuelUiState()
                 onDone()

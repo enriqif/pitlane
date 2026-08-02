@@ -12,6 +12,15 @@ interface FuelLogDao {
     @Query("SELECT * FROM fuel_logs ORDER BY date DESC LIMIT 1")
     suspend fun getLatest(): FuelLogEntity?
 
+    @Query("SELECT * FROM fuel_logs WHERE vehicleId = :vehicleId ORDER BY date DESC")
+    fun getByVehicle(vehicleId: Long): Flow<List<FuelLogEntity>>
+
+    @Query("SELECT SUM(totalCost) FROM fuel_logs WHERE vehicleId = :vehicleId AND date >= :fromDate")
+    suspend fun getTotalCostSince(vehicleId: Long, fromDate: Long): Double?
+
+    @Query("SELECT SUM(liters) FROM fuel_logs WHERE vehicleId = :vehicleId AND date >= :fromDate")
+    suspend fun getTotalLitersSince(vehicleId: Long, fromDate: Long): Double?
+
     @Query("SELECT SUM(totalCost) FROM fuel_logs WHERE date >= :fromDate")
     suspend fun getTotalCostSince(fromDate: Long): Double?
 

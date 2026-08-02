@@ -9,6 +9,12 @@ interface ReminderDao {
     @Query("SELECT * FROM reminders WHERE isCompleted = 0 ORDER BY triggerDate ASC")
     fun getPending(): Flow<List<ReminderEntity>>
 
+    @Query("SELECT * FROM reminders WHERE vehicleId = :vehicleId AND isCompleted = 0 ORDER BY triggerDate ASC")
+    fun getPendingByVehicle(vehicleId: Long): Flow<List<ReminderEntity>>
+
+    @Query("SELECT * FROM reminders WHERE vehicleId = :vehicleId ORDER BY triggerDate ASC")
+    fun getAllByVehicle(vehicleId: Long): Flow<List<ReminderEntity>>
+
     @Query("SELECT * FROM reminders ORDER BY triggerDate ASC")
     fun getAll(): Flow<List<ReminderEntity>>
 

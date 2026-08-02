@@ -104,7 +104,12 @@ fun ServiceScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(services) { service ->
-                        ServiceCard(service = service)
+                        ServiceCard(
+                            service = service,
+                            onClick = {
+                                navController.navigate(Routes.serviceDetail(service.id))
+                            }
+                        )
                     }
                 }
             }
@@ -131,7 +136,10 @@ fun ServiceScreen(
 }
 
 @Composable
-private fun ServiceCard(service: ServiceRecordEntity) {
+private fun ServiceCard(
+    service: ServiceRecordEntity,
+    onClick: () -> Unit           // ← nuevo
+) {
     val date = SimpleDateFormat("dd MMM yyyy", Locale("es", "AR"))
         .format(Date(service.date)).uppercase()
     val kmFormatted = NumberFormat.getNumberInstance(Locale("es", "AR"))
@@ -146,6 +154,7 @@ private fun ServiceCard(service: ServiceRecordEntity) {
     }
 
     Card(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .border(

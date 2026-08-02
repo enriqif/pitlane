@@ -20,11 +20,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
+import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
+import com.patrykandpatrick.vico.core.cartesian.Scroll
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
@@ -37,6 +40,7 @@ import com.widoo.pitlane.ui.theme.PitlaneTheme
 import com.widoo.pitlane.ui.theme.PrimaryGreen
 import org.koin.androidx.compose.koinViewModel
 import java.text.NumberFormat
+import java.util.Calendar
 import java.util.Locale
 
 @Composable
@@ -251,6 +255,8 @@ private fun LegendItem(color: Color, label: String) {
 private fun MonthlyCostChart(monthlyData: List<MonthlyData>) {
     val modelProducer = remember { CartesianChartModelProducer() }
     val months = monthlyData.map { it.month }
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val currentMonth = Calendar.getInstance().get(Calendar.MONTH) -1 // 0-indexed
 
     LaunchedEffect(monthlyData) {
         modelProducer.runTransaction {
@@ -261,17 +267,25 @@ private fun MonthlyCostChart(monthlyData: List<MonthlyData>) {
         }
     }
 
+    val scrollState = rememberVicoScrollState(
+        initialScroll = Scroll.Absolute.x(currentMonth.toFloat().toDouble())
+    )
+
     CartesianChartHost(
         chart = rememberCartesianChart(
             rememberColumnCartesianLayer(),
-            startAxis = VerticalAxis.rememberStart(),
+            startAxis = VerticalAxis.rememberStart(
+                label = rememberAxisLabelComponent(color = textColor)
+            ),
             bottomAxis = HorizontalAxis.rememberBottom(
+                label = rememberAxisLabelComponent(color = textColor),
                 valueFormatter = { _, x, _ ->
                     months.getOrElse(x.toInt()) { "" }
                 }
             )
         ),
         modelProducer = modelProducer,
+        scrollState = scrollState,
         modifier = Modifier
             .fillMaxWidth()
             .height(200.dp)
