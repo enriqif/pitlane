@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.widoo.pitlane.data.local.PreferencesManager
 import com.widoo.pitlane.ui.navigation.AppNavigation
+import com.widoo.pitlane.ui.navigation.Screen
 import com.widoo.pitlane.ui.screen.onboarding.OnboardingScreen
 import com.widoo.pitlane.ui.theme.PitlaneTheme
 import org.koin.android.ext.android.inject
@@ -23,6 +24,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Detectar si viene del widget
+        val openFuel = intent?.action == "ACTION_OPEN_FUEL"
         setContent {
             PitlaneTheme {
                 val onboardingCompleted by preferencesManager
@@ -30,11 +34,13 @@ class MainActivity : ComponentActivity() {
                     .collectAsState(initial = false)
 
                 if (onboardingCompleted) {
-                    AppNavigation()
-                } else {
-                    OnboardingScreen(
-                        onComplete = { recreate() }
+                    AppNavigation(startDestination = if (openFuel)
+                        Screen.Fuel.route
+                    else
+                        Screen.Home.route
                     )
+                } else {
+                    OnboardingScreen(onComplete = { recreate() })
                 }
             }
         }

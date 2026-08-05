@@ -19,6 +19,9 @@ workManager = "2.9.1"
 vicoCompose = "2.0.0-beta.4"
 datastore = "1.1.1"
 
+# widget
+glance = "1.1.1"
+
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
 androidx-compose-foundation-layout = { module = "androidx.compose.foundation:foundation-layout" }
@@ -51,6 +54,9 @@ androidx-work-runtime = { group = "androidx.work", name = "work-runtime-ktx", ve
 vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vicoCompose" }
 androidx-datastore = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
+# widget
+androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
+androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
