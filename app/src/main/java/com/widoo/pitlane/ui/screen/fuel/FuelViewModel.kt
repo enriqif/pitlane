@@ -253,10 +253,11 @@ class FuelViewModel(
             _addState.value = _addState.value.copy(isLoading = true)
             try {
                 val state = _addState.value
+
                 val vehicleId = if (state.selectedVehicleId != -1L)
                     state.selectedVehicleId
                 else
-                    preferencesManager.activeVehicleId.first()
+                    vehicleRepository.getActive().first()?.id ?: return@launch
 
                 val liters = state.liters.toDoubleOrNull() ?: 0.0
                 val price = state.pricePerLiter.toDoubleOrNull() ?: 0.0

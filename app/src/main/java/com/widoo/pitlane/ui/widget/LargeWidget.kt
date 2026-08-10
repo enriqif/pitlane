@@ -42,6 +42,8 @@ class LargeWidget : GlanceAppWidget() {
 
         val vehicles = vehicleRepo.getAll().first()      // ← nuevo
         val vehicle = vehicles.firstOrNull { it.isActive }
+
+        android.util.Log.d("LargeWidget", ">>> provideGlance - active vehicle: ${vehicle?.brand} ${vehicle?.model}")
         val vehicleCount = vehicles.size                 // ← nuevo
 
         val services = serviceRepo.getAll().first()
@@ -203,7 +205,13 @@ private fun LargeWidgetContent(
                         .background(Color(0xFF1D201F))
                         .cornerRadius(10.dp)
                         .padding(12.dp)
-                        .clickable(actionRunCallback<SwitchVehicleAction>()),
+                        .clickable(
+                            actionSendBroadcast(
+                                Intent(LargeWidgetReceiver.ACTION_SWITCH).apply {
+                                    setClass(context, LargeWidgetReceiver::class.java)
+                                }
+                            )
+                        ),
                     horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
                     verticalAlignment = Alignment.Vertical.CenterVertically
                 ) {
@@ -361,7 +369,9 @@ private fun LargeWidgetContent(
                         actionStartActivity(
                             Intent(context, MainActivity::class.java).apply {
                                 action = "ACTION_OPEN_FUEL"
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                        Intent.FLAG_ACTIVITY_SINGLE_TOP
                             }
                         )
                     ),
@@ -385,7 +395,15 @@ private fun LargeWidgetContent(
                     .background(surfaceColor)
                     .cornerRadius(10.dp)
                     .padding(vertical = 12.dp)
-                    .clickable(actionStartActivity<MainActivity>()),
+                    .clickable(
+                        actionStartActivity(
+                            Intent(context, MainActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                                        Intent.FLAG_ACTIVITY_CLEAR_TOP or  // ← limpia el stack
+                                        Intent.FLAG_ACTIVITY_SINGLE_TOP    // ← reutiliza instancia existente
+                            }
+                        )
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -401,6 +419,6 @@ private fun LargeWidgetContent(
     }
 }
 
-class LargeWidgetReceiver : GlanceAppWidgetReceiver() {
-    override val glanceAppWidget: GlanceAppWidget = LargeWidget()
-}
+//class LargeWidgetReceiver : GlanceAppWidgetReceiver() {
+//    override val glanceAppWidget: GlanceAppWidget = LargeWidget()
+//}

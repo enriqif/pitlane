@@ -32,4 +32,10 @@ interface VehicleDao {
 
     @Delete
     suspend fun delete(vehicle: VehicleEntity)
+
+    @Transaction
+    suspend fun switchActive(newActiveId: Long) {
+        clearActive()
+        setActive(newActiveId)
+    }
 }

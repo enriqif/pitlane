@@ -43,7 +43,7 @@ val appModule = module {
 
     viewModel { OnboardingViewModel(get(), get()) }
 
-    viewModel { VehicleProfileViewModel(get()) }
+    viewModel { VehicleProfileViewModel(get(), androidContext()) }
 
     viewModel { HomeViewModel(get(), get(), get(), get(), get()) }
 

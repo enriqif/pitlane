@@ -65,7 +65,6 @@ class ServiceViewModel(
     val addState: StateFlow<AddServiceUiState> = _addState.asStateFlow()
 
     init {
-        // Cargar vehículo activo por defecto
         viewModelScope.launch {
             vehicleRepository.getActive().collect { vehicle ->
                 vehicle?.let {
@@ -137,7 +136,7 @@ class ServiceViewModel(
                 val vehicleId = if (s.selectedVehicleId != -1L)
                     s.selectedVehicleId
                 else
-                    preferencesManager.activeVehicleId.first()
+                    vehicleRepository.getActive().first()?.id ?: return@launch
 
                 val filtersJson = "[${s.filtersChanged.joinToString(",") { "\"$it\"" }}]"
                 val partsJson = "[${s.spareParts.joinToString(",") {

@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 
 data class HomeUiState(
+    val isLoading: Boolean = true,
     val vehicle: VehicleEntity? = null,
     val latestService: ServiceRecordEntity? = null,
     val services: List<ServiceRecordEntity> = emptyList(),
@@ -122,6 +123,7 @@ class HomeViewModel(
                 }.sumOf { it.totalCost }
 
         HomeUiState(
+            isLoading = false,
             vehicle = vehicle,
             latestService = latestService,
             services = services,
@@ -141,7 +143,7 @@ class HomeViewModel(
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
-        HomeUiState()
+        HomeUiState(isLoading = true)
     )
 
     fun updateCurrentKm(km: Int) {

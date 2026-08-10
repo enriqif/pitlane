@@ -10,11 +10,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.lifecycleScope
 import com.widoo.pitlane.data.local.PreferencesManager
 import com.widoo.pitlane.ui.navigation.AppNavigation
 import com.widoo.pitlane.ui.navigation.Screen
+import com.widoo.pitlane.ui.screen.SplashScreen
 import com.widoo.pitlane.ui.screen.onboarding.OnboardingScreen
 import com.widoo.pitlane.ui.theme.PitlaneTheme
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
@@ -27,20 +32,32 @@ class MainActivity : ComponentActivity() {
 
         // Detectar si viene del widget
         val openFuel = intent?.action == "ACTION_OPEN_FUEL"
+
+        // Leer el valor inicial de forma síncrona antes de setContent
+        var initialOnboardingValue: Boolean? = null
+        lifecycleScope.launch {
+            initialOnboardingValue = preferencesManager
+                .isOnboardingCompleted
+                .first()
+        }
+
         setContent {
             PitlaneTheme {
                 val onboardingCompleted by preferencesManager
                     .isOnboardingCompleted
-                    .collectAsState(initial = false)
+                    .collectAsState(initial = initialOnboardingValue)
 
-                if (onboardingCompleted) {
-                    AppNavigation(startDestination = if (openFuel)
-                        Screen.Fuel.route
-                    else
-                        Screen.Home.route
+                when (onboardingCompleted) {
+                    null -> SplashScreen()           // ← mientras carga DataStore
+                    true -> AppNavigation(
+                        startDestination = if (openFuel)
+                            Screen.Fuel.route
+                        else
+                            Screen.Home.route
                     )
-                } else {
-                    OnboardingScreen(onComplete = { recreate() })
+                    false -> OnboardingScreen(
+                        onComplete = { recreate() }
+                    )
                 }
             }
         }

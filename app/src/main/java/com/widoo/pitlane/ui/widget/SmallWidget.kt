@@ -155,8 +155,9 @@ private fun SmallWidgetContent(
                     .clickable(
                         actionStartActivity(
                             Intent(context, MainActivity::class.java).apply {
-                                action = "ACTION_OPEN_FUEL"
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                        Intent.FLAG_ACTIVITY_SINGLE_TOP
                             }
                         )
                     ),

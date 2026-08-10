@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.widoo.pitlane.ui.screen.SplashScreen
 import com.widoo.pitlane.ui.theme.ElectricCyan
 import org.koin.androidx.compose.koinViewModel
 import java.text.NumberFormat
@@ -36,6 +37,12 @@ import java.util.*
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsState()
+
+    if (state.isLoading) {
+        SplashScreen()  // ← mismo splash mientras Room carga
+        return
+    }
+
     val numFormat = NumberFormat.getNumberInstance(Locale("es", "AR"))
 
     Column(

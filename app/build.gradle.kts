@@ -1,10 +1,8 @@
 import AppVersion.getVersionCode
 import AppVersion.getVersionName
-import org.gradle.language.nativeplatform.internal.Dimensions.applicationVariants
-import java.util.Properties
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -24,8 +22,8 @@ android {
         applicationId = AppConfig.APPLICATION_ID
         minSdk = AppConfig.MIN_SDK
         targetSdk = AppConfig.TARGET_SDK
-        versionCode = AppVersion.getVersionCode()
-        versionName = AppVersion.getVersionName()
+        versionCode = getVersionCode()
+        versionName = getVersionName()
         testInstrumentationRunner = AppConfig.TEST_INSTRUMENTATION_RUNNER
     }
 

@@ -1,10 +1,14 @@
 package com.widoo.pitlane.ui.screen.profile
 
+import android.content.Context
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.widoo.pitlane.data.local.VehicleCatalog
 import com.widoo.pitlane.data.local.entity.VehicleEntity
 import com.widoo.pitlane.data.repository.VehicleRepository
+import com.widoo.pitlane.ui.widget.LargeWidget
+import com.widoo.pitlane.ui.widget.SmallWidget
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +35,8 @@ data class VehicleProfileUiState(
 )
 
 class VehicleProfileViewModel(
-    private val vehicleRepository: VehicleRepository
+    private val vehicleRepository: VehicleRepository,
+    private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(VehicleProfileUiState())
@@ -103,6 +108,7 @@ class VehicleProfileViewModel(
                     )
                 )
                 _editState.value = EditVehicleUiState()
+                updateWidgets()
                 onDone()
             } catch (e: Exception) {
                 _editState.value = _editState.value.copy(
@@ -116,6 +122,7 @@ class VehicleProfileViewModel(
     fun setActive(vehicle: VehicleEntity) {
         viewModelScope.launch {
             vehicleRepository.setActive(vehicle.id)
+            updateWidgets()
         }
     }
 
@@ -143,6 +150,22 @@ class VehicleProfileViewModel(
                     isActive = false
                 )
             )
+            // Actualizar widgets
+            updateWidgets()
+        }
+    }
+
+    private suspend fun updateWidgets() {
+        try {
+            val manager = GlanceAppWidgetManager(context)
+            manager.getGlanceIds(LargeWidget::class.java).forEach { id ->
+                LargeWidget().update(context, id)
+            }
+            manager.getGlanceIds(SmallWidget::class.java).forEach { id ->
+                SmallWidget().update(context, id)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("Widget", "Error updating widget: ${e.message}")
         }
     }
 }

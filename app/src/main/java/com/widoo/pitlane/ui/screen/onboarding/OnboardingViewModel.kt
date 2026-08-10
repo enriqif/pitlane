@@ -67,7 +67,6 @@ class OnboardingViewModel(
                         isActive = true
                     )
                 )
-                preferencesManager.setActiveVehicleId(vehicleId)
                 preferencesManager.setOnboardingCompleted()
                 onDone()
             } catch (e: Exception) {
