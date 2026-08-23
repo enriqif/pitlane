@@ -12,7 +12,6 @@ import androidx.glance.action.actionStartActivity
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.actionRunCallback
-import androidx.glance.appwidget.action.actionSendBroadcast
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.cornerRadius
@@ -26,6 +25,7 @@ import com.widoo.pitlane.data.local.AppDatabase
 import com.widoo.pitlane.data.repository.FuelRepository
 import com.widoo.pitlane.data.repository.ServiceRepository
 import com.widoo.pitlane.data.repository.VehicleRepository
+import com.widoo.pitlane.ui.theme.WarningOrange
 import kotlinx.coroutines.flow.first
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -115,9 +115,14 @@ private fun LargeWidgetContent(
     val textPrimary = Color(0xFFE2E3E0)
     val textSecondary = Color(0xFF8A938E)
 
+    Box(
+        modifier = GlanceModifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
     Column(
         modifier = GlanceModifier
-            .fillMaxSize()
+            .fillMaxWidth()
+            .wrapContentHeight()
             .background(bgColor)
             .cornerRadius(16.dp)
             .padding(14.dp)
@@ -189,7 +194,7 @@ private fun LargeWidgetContent(
                         else "¡Service vencido!",
                         style = TextStyle(
                             color = ColorProvider(
-                                if (isWarning) Color(0xFFFF7043) else textSecondary
+                                if (isWarning) WarningOrange else textSecondary
                             ),
                             fontSize = 11.sp
                         )
@@ -205,13 +210,7 @@ private fun LargeWidgetContent(
                         .background(Color(0xFF1D201F))
                         .cornerRadius(10.dp)
                         .padding(12.dp)
-                        .clickable(
-                            actionSendBroadcast(
-                                Intent(LargeWidgetReceiver.ACTION_SWITCH).apply {
-                                    setClass(context, LargeWidgetReceiver::class.java)
-                                }
-                            )
-                        ),
+                        .clickable(actionRunCallback<SwitchVehicleAction>()),
                     horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
                     verticalAlignment = Alignment.Vertical.CenterVertically
                 ) {
@@ -416,6 +415,7 @@ private fun LargeWidgetContent(
                 )
             }
         }
+    }
     }
 }
 

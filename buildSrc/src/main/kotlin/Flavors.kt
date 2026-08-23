@@ -6,9 +6,8 @@ object Flavors {
     object Suffixes {
         const val DEV = ".dev"
     }
-
     object AppNames {
         const val DEV = "Pitlane Dev"
-        const val PROD = "Pitlane"
+        const val PROD = "Pitlane: Control de tu Auto"
     }
 }

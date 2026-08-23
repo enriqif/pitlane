@@ -1,16 +1,21 @@
 package com.widoo.pitlane.ui.screen.home
 
 import android.content.Context
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.widoo.pitlane.data.local.entity.FuelLogEntity
 import com.widoo.pitlane.data.local.entity.ReminderEntity
 import com.widoo.pitlane.data.local.entity.ServiceRecordEntity
+import com.widoo.pitlane.data.local.entity.TripEntity
 import com.widoo.pitlane.data.local.entity.VehicleEntity
 import com.widoo.pitlane.data.repository.FuelRepository
 import com.widoo.pitlane.data.repository.ReminderRepository
 import com.widoo.pitlane.data.repository.ServiceRepository
+import com.widoo.pitlane.data.repository.TripRepository
 import com.widoo.pitlane.data.repository.VehicleRepository
+import com.widoo.pitlane.ui.widget.LargeWidget
+import com.widoo.pitlane.ui.widget.SmallWidget
 import com.widoo.pitlane.worker.SmartNotificationScheduler
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +23,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import kotlin.math.roundToInt
 
 data class HomeUiState(
     val isLoading: Boolean = true,
@@ -36,7 +42,8 @@ data class HomeUiState(
     val avgConsumption: Double = 0.0,
     val totalServicesThisYear: Int = 0,
     val totalSpentThisYear: Double = 0.0,
-    val consumptionTrend: Float = 0f  // positivo = mejoró, negativo = empeoró
+    val consumptionTrend: Float = 0f,  // positivo = mejoró, negativo = empeoró
+    val pendingTrip: TripEntity? = null
 )
 
 class HomeViewModel(
@@ -44,6 +51,7 @@ class HomeViewModel(
     private val fuelRepository: FuelRepository,
     private val reminderRepository: ReminderRepository,
     private val vehicleRepository: VehicleRepository,
+    private val tripRepository: TripRepository,
     private val context: Context
 ) : ViewModel() {
 
@@ -51,8 +59,9 @@ class HomeViewModel(
         vehicleRepository.getActive(),
         serviceRepository.getAll(),
         fuelRepository.getAll(),
-        reminderRepository.getPending()
-    ) { vehicle, services, fuelLogs, reminders ->
+        reminderRepository.getPending(),
+        tripRepository.getPending()
+    ) { vehicle, services, fuelLogs, reminders, pendingTrip ->
 
         val latestService = services.firstOrNull()
         val currentKm = vehicle?.currentKm ?: 0
@@ -138,7 +147,8 @@ class HomeViewModel(
             avgConsumption = avgConsumption,
             totalServicesThisYear = servicesThisYear.size,
             totalSpentThisYear = totalSpentThisYear,
-            consumptionTrend = consumptionTrend
+            consumptionTrend = consumptionTrend,
+            pendingTrip = pendingTrip
         )
     }.stateIn(
         viewModelScope,
@@ -161,6 +171,48 @@ class HomeViewModel(
                     vehicleName = "${vehicle.brand} ${vehicle.model}"
                 )
             }
+            updateWidgets()
+        }
+    }
+
+    fun confirmTrip(trip: TripEntity) {
+        viewModelScope.launch {
+            val vehicle = uiState.value.vehicle ?: return@launch
+            val addedKm = (trip.distanceMeters / 1000.0).roundToInt()
+            val newKm = vehicle.currentKm + addedKm
+            vehicleRepository.updateKm(vehicle.id, newKm)
+            tripRepository.confirm(trip)
+
+            val latestService = uiState.value.latestService
+            if (latestService?.nextServiceKm != null && latestService.nextServiceKm > 0) {
+                SmartNotificationScheduler.scheduleServiceKmCheck(
+                    context = context,
+                    currentKm = newKm,
+                    nextServiceKm = latestService.nextServiceKm,
+                    vehicleName = "${vehicle.brand} ${vehicle.model}"
+                )
+            }
+            updateWidgets()
+        }
+    }
+
+    fun discardTrip(trip: TripEntity) {
+        viewModelScope.launch {
+            tripRepository.discard(trip)
+        }
+    }
+
+    private suspend fun updateWidgets() {
+        try {
+            val manager = GlanceAppWidgetManager(context)
+            manager.getGlanceIds(LargeWidget::class.java).forEach { id ->
+                LargeWidget().update(context, id)
+            }
+            manager.getGlanceIds(SmallWidget::class.java).forEach { id ->
+                SmallWidget().update(context, id)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("Widget", "Error updating widget: ${e.message}")
         }
     }
 }

@@ -44,7 +44,7 @@ object AppVersion {
         val versionName = getVersionName()
         val versionCode = getVersionCode()
         val date = getBuildDate()
-        return "pitlane-$flavorName-$buildType-v$versionName($versionCode)-$date.aab"
+        return "mivehiculo-$flavorName-$buildType-v$versionName($versionCode)-$date.aab"
     }
 
     fun renameAabOutput(

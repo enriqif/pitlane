@@ -1,5 +1,6 @@
 package com.widoo.pitlane.ui.screen.home
 
+import android.Manifest
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -9,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -22,18 +24,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.widoo.pitlane.service.TripTrackingService
+import com.widoo.pitlane.service.TripTracker
 import com.widoo.pitlane.ui.screen.SplashScreen
 import com.widoo.pitlane.ui.theme.ElectricCyan
+import com.widoo.pitlane.ui.theme.LocalAccentColor
+import com.widoo.pitlane.ui.theme.SuccessGreen
 import org.koin.androidx.compose.koinViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.roundToInt
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsState()
@@ -43,6 +55,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
         return
     }
 
+    val context = LocalContext.current
     val numFormat = NumberFormat.getNumberInstance(Locale("es", "AR"))
 
     Column(
@@ -67,14 +80,14 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 Icon(
                     Icons.Filled.DirectionsCar,
                     contentDescription = null,
-                    tint = ElectricCyan,
+                    tint = LocalAccentColor.current,
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
                     text = "Pitlane",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = ElectricCyan
+                    color = LocalAccentColor.current
                 )
             }
         }
@@ -119,7 +132,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                 text = "${numFormat.format(vehicle.currentKm)} km",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = ElectricCyan
+                                color = LocalAccentColor.current
                             )
                             // Botón editar km
                             IconButton(
@@ -144,7 +157,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                             Text(
                                 text = "● ${vehicle.plate}",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = ElectricCyan,
+                                color = LocalAccentColor.current,
                                 modifier = Modifier.padding(
                                     horizontal = 12.dp,
                                     vertical = 4.dp
@@ -188,7 +201,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                 value = kmInput,
                                 onValueChange = { if (it.length <= 7) kmInput = it },
                                 label = { Text("Kilometraje") },
-                                suffix = { Text("km", color = ElectricCyan) },
+                                suffix = { Text("km", color = LocalAccentColor.current) },
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Number,
                                     imeAction = ImeAction.Done
@@ -196,10 +209,10 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                 singleLine = true,
                                 shape = RoundedCornerShape(8.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = ElectricCyan,
+                                    focusedBorderColor = LocalAccentColor.current,
                                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                                    focusedLabelColor = ElectricCyan,
-                                    cursorColor = ElectricCyan
+                                    focusedLabelColor = LocalAccentColor.current,
+                                    cursorColor = LocalAccentColor.current
                                 )
                             )
                             // Validación
@@ -262,6 +275,53 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                     )
                 }
             }
+        }
+
+        // Trip tracking card — estima el km recorrido por GPS
+        state.vehicle?.let { vehicle ->
+            TripTrackingCard(vehicleId = vehicle.id, context = context)
+        }
+
+        // Diálogo de confirmación al terminar un viaje
+        state.pendingTrip?.let { trip ->
+            val addedKm = (trip.distanceMeters / 1000.0).roundToInt()
+            val newKm = (state.vehicle?.currentKm ?: 0) + addedKm
+            AlertDialog(
+                onDismissRequest = { },
+                title = {
+                    Text(
+                        text = "Viaje finalizado",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Recorriste ~$addedKm km. ¿Actualizamos el odómetro " +
+                                "a ${numFormat.format(newKm)} km?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { viewModel.confirmTrip(trip) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ElectricCyan,
+                            contentColor = Color.Black
+                        )
+                    ) {
+                        Text("Actualizar", fontWeight = FontWeight.Bold, color = Color.Black)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.discardTrip(trip) }) {
+                        Text("Descartar")
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shape = RoundedCornerShape(16.dp)
+            )
         }
 
         // Alert card for pending reminders
@@ -436,7 +496,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                     text = "${numFormat.format(service.nextServiceKm)} km",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = ElectricCyan
+                                    color = LocalAccentColor.current
                                 )
                             }
                         }
@@ -458,7 +518,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                             Text(
                                 text = "${state.serviceProgressPercent}%",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = ElectricCyan,
+                                color = LocalAccentColor.current,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -471,7 +531,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                 .fillMaxWidth()
                                 .height(6.dp)
                                 .clip(RoundedCornerShape(3.dp)),
-                            color = ElectricCyan,
+                            color = LocalAccentColor.current,
                             trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
                         )
 
@@ -578,7 +638,7 @@ private fun StatsSection(
                         text = "$${numFormat.format(state.fuelCostThisMonth)}",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = ElectricCyan
+                        color = LocalAccentColor.current
                     )
                     if (state.fuelCostLastMonth > 0) {
                         val diff = state.fuelCostThisMonth - state.fuelCostLastMonth
@@ -591,7 +651,7 @@ private fun StatsSection(
                             Text(
                                 text = if (isUp) "▲" else "▼",
                                 color = if (isUp) MaterialTheme.colorScheme.error
-                                else Color(0xFF4CAF50),
+                                else SuccessGreen,
                                 style = MaterialTheme.typography.labelSmall
                             )
                             Text(
@@ -599,7 +659,7 @@ private fun StatsSection(
                                         "vs mes anterior",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (isUp) MaterialTheme.colorScheme.error
-                                else Color(0xFF4CAF50)
+                                else SuccessGreen
                             )
                         }
                     }
@@ -641,13 +701,13 @@ private fun StatsSection(
                         val improved = state.consumptionTrend > 0
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = if (improved) Color(0xFF4CAF50).copy(alpha = 0.15f)
+                            color = if (improved) SuccessGreen.copy(alpha = 0.15f)
                             else MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
                         ) {
                             Text(
                                 text = if (improved) "↑ Mejoró" else "↓ Empeoró",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (improved) Color(0xFF4CAF50)
+                                color = if (improved) SuccessGreen
                                 else MaterialTheme.colorScheme.error,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(
@@ -731,6 +791,84 @@ private fun InsightCard(
                     MaterialTheme.colorScheme.onSurface,
                 lineHeight = 20.sp
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+private fun TripTrackingCard(
+    vehicleId: Long,
+    context: android.content.Context
+) {
+    val tripState by TripTracker.state.collectAsState()
+    val locationPermission = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION) { granted ->
+        if (granted) TripTrackingService.start(context, vehicleId)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                Icons.Filled.LocationOn,
+                contentDescription = null,
+                tint = LocalAccentColor.current,
+                modifier = Modifier.size(28.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = if (tripState.isTracking) "Viaje en curso" else "Registrar viaje",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = if (tripState.isTracking)
+                        "%.1f km recorridos".format(tripState.distanceMeters / 1000.0)
+                    else
+                        "Medimos la distancia por GPS y te sugerimos el km al llegar",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (tripState.isTracking) {
+                Button(
+                    onClick = { TripTrackingService.stop(context) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("Finalizar", fontWeight = FontWeight.Bold)
+                }
+            } else {
+                Button(
+                    onClick = {
+                        if (locationPermission.status.isGranted) {
+                            TripTrackingService.start(context, vehicleId)
+                        } else {
+                            locationPermission.launchPermissionRequest()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ElectricCyan,
+                        contentColor = Color.Black
+                    )
+                ) {
+                    Text("Iniciar", fontWeight = FontWeight.Bold, color = Color.Black)
+                }
+            }
         }
     }
 }

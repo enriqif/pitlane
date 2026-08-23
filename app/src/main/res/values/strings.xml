@@ -1,4 +1,5 @@
 <resources>
+    <string name="app_name">Pitlane</string>
     <string name="small_widget_description">Widget pequeño de Pitlane</string>
     <string name="large_widget_description">Dashboard completo de Pitlane</string>
 </resources>

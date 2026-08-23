@@ -6,13 +6,13 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface VehicleDao {
-    @Query("SELECT * FROM vehicles ORDER BY createdAt ASC")
+    @Query("SELECT * FROM vehicles WHERE isDeleted = 0 ORDER BY createdAt ASC")
     fun getAll(): Flow<List<VehicleEntity>>
 
-    @Query("SELECT * FROM vehicles WHERE isActive = 1 LIMIT 1")
+    @Query("SELECT * FROM vehicles WHERE isActive = 1 AND isDeleted = 0 LIMIT 1")
     fun getActive(): Flow<VehicleEntity?>
 
-    @Query("SELECT COUNT(*) FROM vehicles")
+    @Query("SELECT COUNT(*) FROM vehicles WHERE isDeleted = 0")
     suspend fun getCount(): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -27,11 +27,8 @@ interface VehicleDao {
     @Query("UPDATE vehicles SET isActive = 1 WHERE id = :id")
     suspend fun setActive(id: Long)
 
-    @Query("UPDATE vehicles SET currentKm = :km WHERE id = :id")
-    suspend fun updateKm(id: Long, km: Int)
-
-    @Delete
-    suspend fun delete(vehicle: VehicleEntity)
+    @Query("UPDATE vehicles SET currentKm = :km, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun updateKm(id: Long, km: Int, updatedAt: Long)
 
     @Transaction
     suspend fun switchActive(newActiveId: Long) {

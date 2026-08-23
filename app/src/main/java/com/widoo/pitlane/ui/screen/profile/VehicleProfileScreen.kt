@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.widoo.pitlane.data.local.VehicleCatalog
 import com.widoo.pitlane.data.local.entity.VehicleEntity
 import com.widoo.pitlane.ui.theme.ElectricCyan
+import com.widoo.pitlane.ui.theme.LocalAccentColor
 import com.widoo.pitlane.ui.theme.PitlaneTheme
 import org.koin.androidx.compose.koinViewModel
 
@@ -129,12 +130,12 @@ fun VehicleProfileContent(
                 Icon(
                     Icons.Filled.Add,
                     contentDescription = null,
-                    tint = ElectricCyan
+                    tint = LocalAccentColor.current
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     "Agregar vehículo",
-                    color = ElectricCyan,
+                    color = LocalAccentColor.current,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -317,7 +318,7 @@ private fun VehicleCard(
                             Text(
                                 text = "ACTIVO",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = ElectricCyan,
+                                color = LocalAccentColor.current,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(
                                     horizontal = 6.dp,
@@ -336,7 +337,7 @@ private fun VehicleCard(
                     text = "${java.text.NumberFormat.getNumberInstance(java.util.Locale("es", "AR"))
                         .format(vehicle.currentKm)} km",
                     style = MaterialTheme.typography.bodySmall,
-                    color = ElectricCyan,
+                    color = LocalAccentColor.current,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -353,7 +354,7 @@ private fun VehicleCard(
                     Icon(
                         Icons.Filled.Edit,
                         contentDescription = "Editar",
-                        tint = ElectricCyan,
+                        tint = LocalAccentColor.current,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -552,7 +553,7 @@ private fun VehicleFormSheet(
                 value = editState.currentKm,
                 onValueChange = { if (it.length <= 7) onKmChange(it) },
                 label = { Text("Kilometraje actual") },
-                suffix = { Text("km", color = ElectricCyan) },
+                suffix = { Text("km", color = LocalAccentColor.current) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
                 singleLine = true,
@@ -598,11 +599,11 @@ private fun VehicleFormSheet(
 
 @Composable
 private fun profileTextFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = ElectricCyan,
+    focusedBorderColor = LocalAccentColor.current,
     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-    focusedLabelColor = ElectricCyan,
+    focusedLabelColor = LocalAccentColor.current,
     unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    cursorColor = ElectricCyan
+    cursorColor = LocalAccentColor.current
 )
 
 // Previews

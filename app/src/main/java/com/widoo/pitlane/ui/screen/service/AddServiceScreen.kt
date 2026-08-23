@@ -25,6 +25,7 @@ import androidx.navigation.NavController
 import com.widoo.pitlane.data.local.entity.VehicleEntity
 import com.widoo.pitlane.ui.screen.profile.VehicleSelector
 import com.widoo.pitlane.ui.theme.ElectricCyan
+import com.widoo.pitlane.ui.theme.LocalAccentColor
 import org.koin.androidx.compose.koinViewModel
 
 val SERVICE_TYPES = listOf(
@@ -204,12 +205,12 @@ fun AddServiceScreen(
                         label = { Text(filter, style = MaterialTheme.typography.labelMedium) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = ElectricCyan.copy(alpha = 0.2f),
-                            selectedLabelColor = ElectricCyan
+                            selectedLabelColor = LocalAccentColor.current
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = selected,
-                            selectedBorderColor = ElectricCyan,
+                            selectedBorderColor = LocalAccentColor.current,
                             borderColor = MaterialTheme.colorScheme.outlineVariant
                         )
                     )
@@ -257,9 +258,9 @@ fun AddServiceScreen(
                 onClick = { viewModel.addSparePart() },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Filled.Add, contentDescription = null, tint = ElectricCyan)
+                Icon(Icons.Filled.Add, contentDescription = null, tint = LocalAccentColor.current)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Agregar repuesto", color = ElectricCyan)
+                Text("Agregar repuesto", color = LocalAccentColor.current)
             }
 
             // SECCIÓN 5 — Próximo servicio
@@ -350,7 +351,7 @@ private fun SectionTitle(title: String) {
     Text(
         text = title.uppercase(),
         style = MaterialTheme.typography.labelMedium,
-        color = ElectricCyan,
+        color = LocalAccentColor.current,
         fontWeight = FontWeight.SemiBold,
         letterSpacing = androidx.compose.ui.unit.TextUnit(
             1.5f,
@@ -398,12 +399,12 @@ private fun ChipSelector(
                         modifier = Modifier.weight(1f),
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = ElectricCyan.copy(alpha = 0.2f),
-                            selectedLabelColor = ElectricCyan
+                            selectedLabelColor = LocalAccentColor.current
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = isSelected,
-                            selectedBorderColor = ElectricCyan,
+                            selectedBorderColor = LocalAccentColor.current,
                             borderColor = MaterialTheme.colorScheme.outlineVariant
                         )
                     )
@@ -432,8 +433,8 @@ private fun PitlaneTextField(
         onValueChange = onValueChange,
         label = { Text(label) },
         placeholder = { Text(placeholder) },
-        suffix = suffix?.let { { Text(it, color = ElectricCyan) } },
-        prefix = prefix?.let { { Text(it, color = ElectricCyan) } },
+        suffix = suffix?.let { { Text(it, color = LocalAccentColor.current) } },
+        prefix = prefix?.let { { Text(it, color = LocalAccentColor.current) } },
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         keyboardOptions = KeyboardOptions(
@@ -447,9 +448,9 @@ private fun PitlaneTextField(
 
 @Composable
 fun pitlaneTextFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = ElectricCyan,
+    focusedBorderColor = LocalAccentColor.current,
     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-    focusedLabelColor = ElectricCyan,
+    focusedLabelColor = LocalAccentColor.current,
     unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    cursorColor = ElectricCyan
+    cursorColor = LocalAccentColor.current
 )

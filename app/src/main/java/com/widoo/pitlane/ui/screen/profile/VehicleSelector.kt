@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import com.widoo.pitlane.data.local.entity.VehicleEntity
 import com.widoo.pitlane.ui.screen.service.pitlaneTextFieldColors
 import com.widoo.pitlane.ui.theme.ElectricCyan
+import com.widoo.pitlane.ui.theme.LocalAccentColor
 import kotlin.collections.forEach
 
 
@@ -59,7 +60,7 @@ fun VehicleSelector(
                 Icon(
                     Icons.Filled.DirectionsCar,
                     contentDescription = null,
-                    tint = ElectricCyan
+                    tint = LocalAccentColor.current
                 )
             },
             trailingIcon = {
@@ -97,7 +98,7 @@ fun VehicleSelector(
                                     Text(
                                         text = "activo",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = ElectricCyan,
+                                        color = LocalAccentColor.current,
                                         modifier = Modifier.padding(
                                             horizontal = 6.dp,
                                             vertical = 2.dp

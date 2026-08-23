@@ -18,5 +18,6 @@ class FuelRepository(private val dao: FuelLogDao) {
 
     suspend fun insert(log: FuelLogEntity): Long = dao.insert(log)
 
-    suspend fun delete(log: FuelLogEntity) = dao.delete(log)
+    suspend fun delete(log: FuelLogEntity) =
+        dao.update(log.copy(isDeleted = true, updatedAt = System.currentTimeMillis()))
 }

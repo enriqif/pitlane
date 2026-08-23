@@ -24,6 +24,8 @@ import androidx.navigation.NavController
 import com.widoo.pitlane.data.local.entity.ServiceRecordEntity
 import com.widoo.pitlane.ui.navigation.Routes
 import com.widoo.pitlane.ui.theme.ElectricCyan
+import com.widoo.pitlane.ui.theme.LocalAccentColor
+import com.widoo.pitlane.ui.theme.TireBlue
 import org.koin.androidx.compose.koinViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -63,7 +65,7 @@ fun ServiceScreen(
                     Icon(
                         Icons.Filled.Build,
                         contentDescription = null,
-                        tint = ElectricCyan,
+                        tint = LocalAccentColor.current,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -148,8 +150,8 @@ private fun ServiceCard(
     val borderColor = when {
         service.serviceType.contains("aceite", ignoreCase = true) -> ElectricCyan
         service.serviceType.contains("cubierta", ignoreCase = true) ||
-                service.serviceType.contains("neumático", ignoreCase = true) -> Color(0xFF4FC3F7)
-        service.serviceType.contains("freno", ignoreCase = true) -> Color(0xFFFF7043)
+                service.serviceType.contains("neumático", ignoreCase = true) -> TireBlue
+        service.serviceType.contains("freno", ignoreCase = true) -> MaterialTheme.colorScheme.tertiary
         else -> MaterialTheme.colorScheme.primary
     }
 

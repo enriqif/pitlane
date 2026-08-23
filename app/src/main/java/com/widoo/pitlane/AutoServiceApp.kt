@@ -17,25 +17,37 @@ class AutoServiceApp : Application() {
             androidContext(this@AutoServiceApp)
             modules(appModule)
         }
-        createNotificationChannel()
+        createNotificationChannels()
         SmartNotificationScheduler.scheduleMonthlyKmReminder(this)
     }
 
-    private fun createNotificationChannel() {
+    private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
+            val manager = getSystemService(NotificationManager::class.java)
+
+            val remindersChannel = NotificationChannel(
                 CHANNEL_ID,
                 "Recordatorios de mantenimiento",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Alertas de vencimiento y mantenimiento de tu vehículo"
             }
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
+
+            val tripChannel = NotificationChannel(
+                TRIP_CHANNEL_ID,
+                "Viaje en curso",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Notificación persistente mientras se mide un viaje por GPS"
+            }
+
+            manager.createNotificationChannel(remindersChannel)
+            manager.createNotificationChannel(tripChannel)
         }
     }
 
     companion object {
         const val CHANNEL_ID = "pitlane_reminders"
+        const val TRIP_CHANNEL_ID = "pitlane_trip_tracking"
     }
 }

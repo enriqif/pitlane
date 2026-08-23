@@ -6,6 +6,7 @@ import com.widoo.pitlane.data.local.PreferencesManager
 import com.widoo.pitlane.data.repository.ServiceRepository
 import com.widoo.pitlane.data.repository.FuelRepository
 import com.widoo.pitlane.data.repository.ReminderRepository
+import com.widoo.pitlane.data.repository.TripRepository
 import com.widoo.pitlane.data.repository.VehicleRepository
 import com.widoo.pitlane.ui.screen.charts.ChartsViewModel
 import com.widoo.pitlane.ui.screen.fuel.FuelViewModel
@@ -24,18 +25,22 @@ val appModule = module {
             androidContext(),
             AppDatabase::class.java,
             "pitlane.db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration(true)
+            .build()
     }
 
     single { get<AppDatabase>().serviceRecordDao() }
     single { get<AppDatabase>().fuelLogDao() }
     single { get<AppDatabase>().reminderDao() }
     single { get<AppDatabase>().vehicleDao() }
+    single { get<AppDatabase>().tripDao() }
 
     single { VehicleRepository(get()) }
     single { ServiceRepository(get()) }
     single { FuelRepository(get()) }
     single { ReminderRepository(get()) }
+    single { TripRepository(get()) }
 
 
 
@@ -45,7 +50,7 @@ val appModule = module {
 
     viewModel { VehicleProfileViewModel(get(), androidContext()) }
 
-    viewModel { HomeViewModel(get(), get(), get(), get(), get()) }
+    viewModel { HomeViewModel(get(), get(), get(), get(), get(), androidContext()) }
 
     viewModel { ServiceViewModel(get(), get(), get()) }
 

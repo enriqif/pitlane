@@ -20,8 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.widoo.pitlane.ui.theme.ElectricCyan
-import com.widoo.pitlane.ui.theme.PrimaryContainer
+import com.widoo.pitlane.ui.theme.LocalAccentColor
 
 @Composable
 fun SplashScreen() {
@@ -38,13 +37,13 @@ fun SplashScreen() {
                 modifier = Modifier
                     .size(100.dp)
                     .clip(CircleShape)
-                    .background(PrimaryContainer.copy(alpha = 0.4f)),
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Filled.DirectionsCar,
                     contentDescription = null,
-                    tint = ElectricCyan,
+                    tint = LocalAccentColor.current,
                     modifier = Modifier.size(52.dp)
                 )
             }
@@ -54,7 +53,7 @@ fun SplashScreen() {
             Text(
                 text = "Pitlane",
                 style = MaterialTheme.typography.displayLarge.copy(fontSize = 42.sp),
-                color = ElectricCyan,
+                color = LocalAccentColor.current,
                 fontWeight = FontWeight.Bold
             )
         }

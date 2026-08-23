@@ -1,6 +1,7 @@
 package com.widoo.pitlane.ui.screen.fuel
 
 import android.content.Context
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.widoo.pitlane.data.local.PreferencesManager
@@ -8,6 +9,8 @@ import com.widoo.pitlane.data.local.entity.FuelLogEntity
 import com.widoo.pitlane.data.local.entity.VehicleEntity
 import com.widoo.pitlane.data.repository.FuelRepository
 import com.widoo.pitlane.data.repository.VehicleRepository
+import com.widoo.pitlane.ui.widget.LargeWidget
+import com.widoo.pitlane.ui.widget.SmallWidget
 import com.widoo.pitlane.worker.SmartNotificationScheduler
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -285,7 +288,10 @@ class FuelViewModel(
                         station = state.station.ifBlank { "la estación" }
                     )
                 }
-                if (km > 0) vehicleRepository.updateKm(vehicleId, km)
+                if (km > 0) {
+                    vehicleRepository.updateKm(vehicleId, km)
+                    updateWidgets()
+                }
                 _addState.value = AddFuelUiState()
                 onDone()
             } catch (e: Exception) {
@@ -294,6 +300,20 @@ class FuelViewModel(
                     error = "Error al guardar la carga"
                 )
             }
+        }
+    }
+
+    private suspend fun updateWidgets() {
+        try {
+            val manager = GlanceAppWidgetManager(context)
+            manager.getGlanceIds(LargeWidget::class.java).forEach { id ->
+                LargeWidget().update(context, id)
+            }
+            manager.getGlanceIds(SmallWidget::class.java).forEach { id ->
+                SmallWidget().update(context, id)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("Widget", "Error updating widget: ${e.message}")
         }
     }
 }

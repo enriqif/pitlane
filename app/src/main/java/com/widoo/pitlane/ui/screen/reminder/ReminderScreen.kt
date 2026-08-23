@@ -30,6 +30,7 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.widoo.pitlane.data.local.entity.ReminderEntity
 import com.widoo.pitlane.ui.theme.ElectricCyan
+import com.widoo.pitlane.ui.theme.LocalAccentColor
 import com.widoo.pitlane.ui.theme.PitlaneTheme
 import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
@@ -152,7 +153,7 @@ fun ReminderScreenContent(
                                 Icon(
                                     Icons.Filled.Notifications,
                                     contentDescription = null,
-                                    tint = ElectricCyan,
+                                    tint = LocalAccentColor.current,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -197,7 +198,7 @@ fun ReminderScreenContent(
                         Text(
                             text = "PENDIENTES",
                             style = MaterialTheme.typography.labelMedium,
-                            color = ElectricCyan,
+                            color = LocalAccentColor.current,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
                         )
@@ -359,7 +360,7 @@ private fun PendingReminderCard(
     val daysUntil = ((reminder.triggerDate - System.currentTimeMillis()) /
             (1000 * 60 * 60 * 24)).toInt()
     val isOverdue = daysUntil < 0
-    val accentColor = if (isOverdue) MaterialTheme.colorScheme.error else ElectricCyan
+    val accentColor = if (isOverdue) MaterialTheme.colorScheme.error else LocalAccentColor.current
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -456,7 +457,7 @@ private fun PendingReminderCard(
                         Icon(
                             Icons.Filled.Check,
                             contentDescription = "Completar",
-                            tint = ElectricCyan,
+                            tint = LocalAccentColor.current,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -574,10 +575,10 @@ private fun AddReminderSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = ElectricCyan,
+                    focusedBorderColor = LocalAccentColor.current,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedLabelColor = ElectricCyan,
-                    cursorColor = ElectricCyan
+                    focusedLabelColor = LocalAccentColor.current,
+                    cursorColor = LocalAccentColor.current
                 )
             )
 
@@ -590,10 +591,10 @@ private fun AddReminderSheet(
                 shape = RoundedCornerShape(8.dp),
                 maxLines = 3,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = ElectricCyan,
+                    focusedBorderColor = LocalAccentColor.current,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedLabelColor = ElectricCyan,
-                    cursorColor = ElectricCyan
+                    focusedLabelColor = LocalAccentColor.current,
+                    cursorColor = LocalAccentColor.current
                 )
             )
 
@@ -604,15 +605,15 @@ private fun AddReminderSheet(
                 label = { Text("Fecha del recordatorio") },
                 trailingIcon = {
                     TextButton(onClick = { showDatePicker = true }) {
-                        Text("Cambiar", color = ElectricCyan)
+                        Text("Cambiar", color = LocalAccentColor.current)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = ElectricCyan,
+                    focusedBorderColor = LocalAccentColor.current,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedLabelColor = ElectricCyan,
+                    focusedLabelColor = LocalAccentColor.current,
                 )
             )
 
@@ -692,7 +693,7 @@ private fun AddReminderSheet(
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { onDateChange(it) }
                     showDatePicker = false
-                }) { Text("OK", color = ElectricCyan) }
+                }) { Text("OK", color = LocalAccentColor.current) }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {

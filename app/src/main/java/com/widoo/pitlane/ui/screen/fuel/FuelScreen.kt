@@ -25,7 +25,8 @@ import com.widoo.pitlane.data.local.entity.FuelLogEntity
 import com.widoo.pitlane.data.local.entity.VehicleEntity
 import com.widoo.pitlane.ui.screen.profile.VehicleSelector
 import com.widoo.pitlane.ui.theme.ElectricCyan
-import com.widoo.pitlane.ui.theme.PrimaryContainer
+import com.widoo.pitlane.ui.theme.LocalAccentColor
+import com.widoo.pitlane.ui.theme.SuccessGreen
 import org.koin.androidx.compose.koinViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -51,7 +52,7 @@ fun FuelScreen(viewModel: FuelViewModel = koinViewModel()) {
                     .padding(16.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = PrimaryContainer
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
@@ -66,7 +67,7 @@ fun FuelScreen(viewModel: FuelViewModel = koinViewModel()) {
                             .format(state.monthlyTotal)}",
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
-                        color = ElectricCyan
+                        color = LocalAccentColor.current
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(
@@ -266,7 +267,7 @@ private fun ComparisonItem(
 ) {
     val valueColor = when {
         isNeutral -> MaterialTheme.colorScheme.onSurface
-        isPositive -> Color(0xFF4CAF50)
+        isPositive -> SuccessGreen
         else -> MaterialTheme.colorScheme.error
     }
 
@@ -330,7 +331,7 @@ private fun FuelLogCard(log: FuelLogEntity) {
                 Icon(
                     Icons.Filled.LocalGasStation,
                     contentDescription = null,
-                    tint = ElectricCyan,
+                    tint = LocalAccentColor.current,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -352,7 +353,7 @@ private fun FuelLogCard(log: FuelLogEntity) {
                 Text(
                     text = "$${formatter.format(log.pricePerLiter)}/L",
                     style = MaterialTheme.typography.bodySmall,
-                    color = ElectricCyan,
+                    color = LocalAccentColor.current,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -372,7 +373,7 @@ private fun FuelLogCard(log: FuelLogEntity) {
                     Text(
                         text = "${String.format("%.1f", log.liters)} L",
                         style = MaterialTheme.typography.labelSmall,
-                        color = ElectricCyan,
+                        color = LocalAccentColor.current,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
@@ -427,7 +428,7 @@ private fun AddFuelSheet(
                 value = state.km,
                 onValueChange = viewModel::onKmChange,
                 label = { Text("Kilometraje actual") },
-                suffix = { Text("km", color = ElectricCyan) },
+                suffix = { Text("km", color = LocalAccentColor.current) },
                 isError = state.kmError != null,
                 supportingText = state.kmError?.let {
                     { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -451,7 +452,7 @@ private fun AddFuelSheet(
                     value = state.liters,
                     onValueChange = viewModel::onLitersChange,
                     label = { Text("Litros") },
-                    suffix = { Text("L", color = ElectricCyan) },
+                    suffix = { Text("L", color = LocalAccentColor.current) },
                     isError = state.litersError != null,
                     supportingText = state.litersError?.let {
                         { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -469,7 +470,7 @@ private fun AddFuelSheet(
                     value = state.pricePerLiter,
                     onValueChange = viewModel::onPricePerLiterChange,
                     label = { Text("Precio/L") },
-                    prefix = { Text("$", color = ElectricCyan) },
+                    prefix = { Text("$", color = LocalAccentColor.current) },
                     isError = state.priceError != null,
                     supportingText = state.priceError?.let {
                         { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -490,7 +491,7 @@ private fun AddFuelSheet(
                 value = state.totalCost,
                 onValueChange = {},
                 label = { Text("Total") },
-                prefix = { Text("$", color = ElectricCyan) },
+                prefix = { Text("$", color = LocalAccentColor.current) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
                 readOnly = true,
@@ -549,9 +550,9 @@ private fun AddFuelSheet(
 
 @Composable
 private fun fuelTextFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = ElectricCyan,
+    focusedBorderColor = LocalAccentColor.current,
     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-    focusedLabelColor = ElectricCyan,
+    focusedLabelColor = LocalAccentColor.current,
     unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    cursorColor = ElectricCyan
+    cursorColor = LocalAccentColor.current
 )

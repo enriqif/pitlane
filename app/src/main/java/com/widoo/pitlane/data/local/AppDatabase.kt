@@ -7,10 +7,12 @@ import androidx.room.RoomDatabase
 import com.widoo.pitlane.data.local.dao.FuelLogDao
 import com.widoo.pitlane.data.local.dao.ReminderDao
 import com.widoo.pitlane.data.local.dao.ServiceRecordDao
+import com.widoo.pitlane.data.local.dao.TripDao
 import com.widoo.pitlane.data.local.dao.VehicleDao
 import com.widoo.pitlane.data.local.entity.FuelLogEntity
 import com.widoo.pitlane.data.local.entity.ReminderEntity
 import com.widoo.pitlane.data.local.entity.ServiceRecordEntity
+import com.widoo.pitlane.data.local.entity.TripEntity
 import com.widoo.pitlane.data.local.entity.VehicleEntity
 
 @Database(
@@ -18,9 +20,10 @@ import com.widoo.pitlane.data.local.entity.VehicleEntity
         VehicleEntity::class,
         ServiceRecordEntity::class,
         FuelLogEntity::class,
-        ReminderEntity::class
+        ReminderEntity::class,
+        TripEntity::class
     ],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,6 +31,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun serviceRecordDao(): ServiceRecordDao
     abstract fun fuelLogDao(): FuelLogDao
     abstract fun reminderDao(): ReminderDao
+    abstract fun tripDao(): TripDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null

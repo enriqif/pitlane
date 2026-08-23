@@ -140,6 +140,7 @@ class VehicleProfileViewModel(
         km: Int
     ) {
         viewModelScope.launch {
+            val isFirstVehicle = vehicleRepository.getCount() == 0
             vehicleRepository.insert(
                 VehicleEntity(
                     brand = brand,
@@ -147,7 +148,7 @@ class VehicleProfileViewModel(
                     year = year,
                     plate = plate,
                     currentKm = km,
-                    isActive = false
+                    isActive = isFirstVehicle
                 )
             )
             // Actualizar widgets

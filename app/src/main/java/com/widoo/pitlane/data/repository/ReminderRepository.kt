@@ -17,7 +17,9 @@ class ReminderRepository(private val dao: ReminderDao) {
 
     suspend fun insert(reminder: ReminderEntity): Long = dao.insert(reminder)
 
-    suspend fun update(reminder: ReminderEntity) = dao.update(reminder)
+    suspend fun update(reminder: ReminderEntity) =
+        dao.update(reminder.copy(updatedAt = System.currentTimeMillis()))
 
-    suspend fun delete(reminder: ReminderEntity) = dao.delete(reminder)
+    suspend fun delete(reminder: ReminderEntity) =
+        dao.update(reminder.copy(isDeleted = true, updatedAt = System.currentTimeMillis()))
 }

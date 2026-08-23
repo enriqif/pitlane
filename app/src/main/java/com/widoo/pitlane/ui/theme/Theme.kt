@@ -1,10 +1,22 @@
 package com.widoo.pitlane.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+
+/**
+ * Color de acento de marca para texto/íconos/bordes que se apoyan directamente sobre el
+ * fondo (no sobre un container propio). En dark mode es el cyan vibrante de siempre; en
+ * light mode ese mismo cyan pierde casi todo el contraste contra un fondo claro, así que
+ * se resuelve a un teal oscuro legible. Los fills de botones/chips (que ya llevan texto
+ * con contraste propio encima) siguen usando ElectricCyan directo en ambos temas.
+ */
+val LocalAccentColor = staticCompositionLocalOf { Color.Unspecified }
 
 private val DarkColorScheme = darkColorScheme(
     primary = PrimaryGreen,
@@ -15,10 +27,10 @@ private val DarkColorScheme = darkColorScheme(
     onSecondary = OnSecondary,
     secondaryContainer = SecondaryContainer,
     onSecondaryContainer = OnSecondaryContainer,
-    tertiary = TertiaryCoral,
-    onTertiary = OnTertiary,
-    tertiaryContainer = TertiaryContainer,
-    onTertiaryContainer = OnTertiaryContainer,
+    tertiary = WarningOrange,
+    onTertiary = OnWarning,
+    tertiaryContainer = WarningContainer,
+    onTertiaryContainer = OnWarningContainer,
     error = ErrorRed,
     onError = OnError,
     errorContainer = ErrorContainer,
@@ -39,30 +51,50 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF376757),
-    onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFBAEED9),
-    onPrimaryContainer = Color(0xFF002117),
-    secondary = Color(0xFF004F58),
-    onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFF9CF0FF),
-    onSecondaryContainer = Color(0xFF001F24),
-    background = Color(0xFFF5F5F5),
-    onBackground = Color(0xFF1C1C1E),
-    surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF1C1C1E),
+    primary = LightPrimary,
+    onPrimary = LightOnPrimary,
+    primaryContainer = LightPrimaryContainer,
+    onPrimaryContainer = LightOnPrimaryContainer,
+    secondary = LightSecondary,
+    onSecondary = LightOnSecondary,
+    secondaryContainer = LightSecondaryContainer,
+    onSecondaryContainer = LightOnSecondaryContainer,
+    tertiary = LightTertiary,
+    onTertiary = LightOnTertiary,
+    tertiaryContainer = LightTertiaryContainer,
+    onTertiaryContainer = LightOnTertiaryContainer,
+    error = LightError,
+    onError = LightOnError,
+    errorContainer = LightErrorContainer,
+    onErrorContainer = LightOnErrorContainer,
+    background = LightBackground,
+    onBackground = LightOnBackground,
+    surface = LightSurface,
+    onSurface = LightOnSurface,
+    surfaceVariant = LightSurfaceVariant,
+    onSurfaceVariant = LightOnSurfaceVariant,
+    outline = LightOutline,
+    outlineVariant = LightOutlineVariant,
+    surfaceContainerLowest = LightSurfaceContainerLowest,
+    surfaceContainerLow = LightSurfaceContainerLow,
+    surfaceContainer = LightSurfaceContainer,
+    surfaceContainerHigh = LightSurfaceContainerHigh,
+    surfaceContainerHighest = LightSurfaceContainerHighest,
 )
 
 @Composable
 fun PitlaneTheme(
-    darkTheme: Boolean = true,
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val accentColor = if (darkTheme) ElectricCyan else LightSecondary
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = PitlaneTypography,
-        content = content
-    )
+    CompositionLocalProvider(LocalAccentColor provides accentColor) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = PitlaneTypography,
+            content = content
+        )
+    }
 }

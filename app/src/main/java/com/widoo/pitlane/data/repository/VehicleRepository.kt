@@ -12,14 +12,17 @@ class VehicleRepository(private val dao: VehicleDao) {
 
     suspend fun insert(vehicle: VehicleEntity): Long = dao.insert(vehicle)
 
-    suspend fun update(vehicle: VehicleEntity) = dao.update(vehicle)
+    suspend fun update(vehicle: VehicleEntity) =
+        dao.update(vehicle.copy(updatedAt = System.currentTimeMillis()))
 
     suspend fun setActive(id: Long) {
         dao.clearActive()
         dao.setActive(id)
     }
 
-    suspend fun updateKm(id: Long, km: Int) = dao.updateKm(id, km)
+    suspend fun updateKm(id: Long, km: Int) =
+        dao.updateKm(id, km, System.currentTimeMillis())
 
-    suspend fun delete(vehicle: VehicleEntity) = dao.delete(vehicle)
+    suspend fun delete(vehicle: VehicleEntity) =
+        dao.update(vehicle.copy(isDeleted = true, updatedAt = System.currentTimeMillis()))
 }

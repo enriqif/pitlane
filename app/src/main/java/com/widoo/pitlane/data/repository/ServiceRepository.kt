@@ -15,5 +15,6 @@ class ServiceRepository(private val dao: ServiceRecordDao) {
 
     suspend fun insert(record: ServiceRecordEntity): Long = dao.insert(record)
 
-    suspend fun delete(record: ServiceRecordEntity) = dao.delete(record)
+    suspend fun delete(record: ServiceRecordEntity) =
+        dao.update(record.copy(isDeleted = true, updatedAt = System.currentTimeMillis()))
 }

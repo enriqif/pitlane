@@ -24,7 +24,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.widoo.pitlane.data.local.entity.ServiceRecordEntity
 import com.widoo.pitlane.ui.theme.ElectricCyan
+import com.widoo.pitlane.ui.theme.LocalAccentColor
 import com.widoo.pitlane.ui.theme.PitlaneTheme
+import com.widoo.pitlane.ui.theme.TireBlue
 import org.json.JSONArray
 import org.koin.androidx.compose.koinViewModel
 import java.text.NumberFormat
@@ -79,8 +81,8 @@ fun ServiceDetailContent(
     val accentColor = when {
         service.serviceType.contains("aceite", ignoreCase = true) -> ElectricCyan
         service.serviceType.contains("cubierta", ignoreCase = true) ||
-                service.serviceType.contains("neumático", ignoreCase = true) -> Color(0xFF4FC3F7)
-        service.serviceType.contains("freno", ignoreCase = true) -> Color(0xFFFF7043)
+                service.serviceType.contains("neumático", ignoreCase = true) -> TireBlue
+        service.serviceType.contains("freno", ignoreCase = true) -> MaterialTheme.colorScheme.tertiary
         else -> MaterialTheme.colorScheme.primary
     }
 
@@ -220,7 +222,7 @@ fun ServiceDetailContent(
                                 Text(
                                     text = filter,
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = ElectricCyan,
+                                    color = LocalAccentColor.current,
                                     fontWeight = FontWeight.Medium,
                                     modifier = Modifier.padding(
                                         horizontal = 10.dp,
@@ -264,7 +266,7 @@ fun ServiceDetailContent(
                                 Text(
                                     text = part.brand,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = ElectricCyan,
+                                    color = LocalAccentColor.current,
                                     fontWeight = FontWeight.Medium
                                 )
                             }
@@ -286,14 +288,14 @@ fun ServiceDetailContent(
                         DetailRow(
                             label = "Kilometraje",
                             value = "${numFormat.format(service.nextServiceKm)} km",
-                            valueColor = ElectricCyan
+                            valueColor = LocalAccentColor.current
                         )
                     if (service.nextServiceDate > 0)
                         DetailRow(
                             label = "Fecha estimada",
                             value = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                                 .format(Date(service.nextServiceDate)),
-                            valueColor = ElectricCyan
+                            valueColor = LocalAccentColor.current
                         )
                 }
             }
@@ -332,7 +334,7 @@ private fun DetailSection(
             Text(
                 text = title.uppercase(),
                 style = MaterialTheme.typography.labelSmall,
-                color = ElectricCyan,
+                color = LocalAccentColor.current,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp
             )

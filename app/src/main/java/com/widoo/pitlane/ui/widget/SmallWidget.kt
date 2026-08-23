@@ -24,6 +24,7 @@ import com.widoo.pitlane.R
 import com.widoo.pitlane.data.local.AppDatabase
 import com.widoo.pitlane.data.repository.ServiceRepository
 import com.widoo.pitlane.data.repository.VehicleRepository
+import com.widoo.pitlane.ui.theme.WarningOrange
 import kotlinx.coroutines.flow.first
 import java.text.NumberFormat
 import java.util.Locale
@@ -66,20 +67,23 @@ private fun SmallWidgetContent(
 ) {
     val numFormat = NumberFormat.getNumberInstance(Locale("es", "AR"))
     val isWarning = kmToNext in 1..500
-    val accentColor = if (isWarning) Color(0xFFFF7043) else Color(0xFF00E3FD)
+    val accentColor = if (isWarning) WarningOrange else Color(0xFF00E3FD)
 
     Box(
-        modifier = GlanceModifier
-            .fillMaxWidth()
-            .wrapContentHeight()
-            .background(Color(0xFF1D201F))
-            .cornerRadius(16.dp)
-            .padding(12.dp)
-            .clickable(actionStartActivity<MainActivity>())
+        modifier = GlanceModifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
+        Box(
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .background(Color(0xFF1D201F))
+                .cornerRadius(16.dp)
+                .padding(12.dp)
+                .clickable(actionStartActivity<MainActivity>())
+        ) {
         Column(
-            modifier = GlanceModifier.fillMaxSize(),
-            verticalAlignment = Alignment.Vertical.CenterVertically
+            modifier = GlanceModifier.fillMaxWidth()
         ) {
             // App name
             Row(
@@ -172,6 +176,7 @@ private fun SmallWidgetContent(
                     )
                 )
             }
+        }
         }
     }
 }

@@ -32,7 +32,7 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.widoo.pitlane.data.local.VehicleCatalog
 import com.widoo.pitlane.ui.theme.ElectricCyan
-import com.widoo.pitlane.ui.theme.PrimaryContainer
+import com.widoo.pitlane.ui.theme.LocalAccentColor
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -104,8 +104,8 @@ private fun WelcomeStep(onNext: () -> Unit) {
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                PrimaryContainer.copy(alpha = 0.6f),
-                                PrimaryContainer.copy(alpha = 0.1f)
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
                             )
                         )
                     ),
@@ -120,7 +120,7 @@ private fun WelcomeStep(onNext: () -> Unit) {
             Text(
                 text = "Pitlane",
                 style = MaterialTheme.typography.displayLarge,
-                color = ElectricCyan,
+                color = LocalAccentColor.current,
                 fontWeight = FontWeight.Bold
             )
 
@@ -282,11 +282,11 @@ private fun VehicleStep(
                     .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = ElectricCyan,
-                    unfocusedBorderColor = if (uiState.brand.isNotBlank()) ElectricCyan
+                    focusedBorderColor = LocalAccentColor.current,
+                    unfocusedBorderColor = if (uiState.brand.isNotBlank()) LocalAccentColor.current
                     else MaterialTheme.colorScheme.outlineVariant,
-                    focusedLabelColor = ElectricCyan,
-                    unfocusedLabelColor = if (uiState.brand.isNotBlank()) ElectricCyan
+                    focusedLabelColor = LocalAccentColor.current,
+                    unfocusedLabelColor = if (uiState.brand.isNotBlank()) LocalAccentColor.current
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             )
@@ -333,11 +333,11 @@ private fun VehicleStep(
                     .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                 shape = RoundedCornerShape(8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = ElectricCyan,
-                    unfocusedBorderColor = if (uiState.model.isNotBlank()) ElectricCyan
+                    focusedBorderColor = LocalAccentColor.current,
+                    unfocusedBorderColor = if (uiState.model.isNotBlank()) LocalAccentColor.current
                     else MaterialTheme.colorScheme.outlineVariant,
-                    focusedLabelColor = ElectricCyan,
-                    unfocusedLabelColor = if (uiState.model.isNotBlank()) ElectricCyan
+                    focusedLabelColor = LocalAccentColor.current,
+                    unfocusedLabelColor = if (uiState.model.isNotBlank()) LocalAccentColor.current
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             )
@@ -372,10 +372,10 @@ private fun VehicleStep(
                 shape = RoundedCornerShape(8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = ElectricCyan,
-                    unfocusedBorderColor = if (uiState.year.isNotBlank()) ElectricCyan
+                    focusedBorderColor = LocalAccentColor.current,
+                    unfocusedBorderColor = if (uiState.year.isNotBlank()) LocalAccentColor.current
                     else MaterialTheme.colorScheme.outlineVariant,
-                    focusedLabelColor = ElectricCyan,
+                    focusedLabelColor = LocalAccentColor.current,
                 )
             )
             OutlinedTextField(
@@ -389,10 +389,10 @@ private fun VehicleStep(
                     capitalization = KeyboardCapitalization.Characters
                 ),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = ElectricCyan,
-                    unfocusedBorderColor = if (uiState.plate.isNotBlank()) ElectricCyan
+                    focusedBorderColor = LocalAccentColor.current,
+                    unfocusedBorderColor = if (uiState.plate.isNotBlank()) LocalAccentColor.current
                     else MaterialTheme.colorScheme.outlineVariant,
-                    focusedLabelColor = ElectricCyan,
+                    focusedLabelColor = LocalAccentColor.current,
                 )
             )
         }
@@ -403,15 +403,15 @@ private fun VehicleStep(
             onValueChange = { if (it.length <= 7) onKmChange(it) },
             label = { Text("Kilometraje actual") },
             placeholder = { Text("87450") },
-            suffix = { Text("km", color = ElectricCyan) },
+            suffix = { Text("km", color = LocalAccentColor.current) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = ElectricCyan,
-                unfocusedBorderColor = if (uiState.currentKm.isNotBlank()) ElectricCyan
+                focusedBorderColor = LocalAccentColor.current,
+                unfocusedBorderColor = if (uiState.currentKm.isNotBlank()) LocalAccentColor.current
                 else MaterialTheme.colorScheme.outlineVariant,
-                focusedLabelColor = ElectricCyan,
+                focusedLabelColor = LocalAccentColor.current,
             )
         )
 
@@ -515,7 +515,7 @@ private fun NotificationsStep(
                 modifier = Modifier
                     .size(120.dp)
                     .clip(CircleShape)
-                    .background(PrimaryContainer.copy(alpha = 0.4f)),
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text("🔔", fontSize = 56.sp)
