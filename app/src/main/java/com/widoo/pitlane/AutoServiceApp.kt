@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import com.widoo.pitlane.di.appModule
+import com.widoo.pitlane.service.CarConnectionMonitor
 import com.widoo.pitlane.worker.SmartNotificationScheduler
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
@@ -19,6 +20,7 @@ class AutoServiceApp : Application() {
         }
         createNotificationChannels()
         SmartNotificationScheduler.scheduleMonthlyKmReminder(this)
+        CarConnectionMonitor.start(this)
     }
 
     private fun createNotificationChannels() {
@@ -41,13 +43,23 @@ class AutoServiceApp : Application() {
                 description = "Notificación persistente mientras se mide un viaje por GPS"
             }
 
+            val tripPromptChannel = NotificationChannel(
+                TRIP_PROMPT_CHANNEL_ID,
+                "Sugerencia de viaje",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Sugerencia para medir un viaje al conectar con Android Auto"
+            }
+
             manager.createNotificationChannel(remindersChannel)
             manager.createNotificationChannel(tripChannel)
+            manager.createNotificationChannel(tripPromptChannel)
         }
     }
 
     companion object {
         const val CHANNEL_ID = "pitlane_reminders"
         const val TRIP_CHANNEL_ID = "pitlane_trip_tracking"
+        const val TRIP_PROMPT_CHANNEL_ID = "pitlane_trip_prompt"
     }
 }

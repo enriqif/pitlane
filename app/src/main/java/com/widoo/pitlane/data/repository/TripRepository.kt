@@ -13,7 +13,7 @@ class TripRepository(private val dao: TripDao) {
     suspend fun setStatus(trip: TripEntity, status: String) =
         dao.update(trip.copy(status = status))
 
-    suspend fun confirm(trip: TripEntity) = setStatus(trip, TripStatus.CONFIRMED)
+    suspend fun acknowledge(trip: TripEntity) = setStatus(trip, TripStatus.ACKNOWLEDGED)
 
-    suspend fun discard(trip: TripEntity) = setStatus(trip, TripStatus.DISCARDED)
+    suspend fun markUndone(trip: TripEntity) = setStatus(trip, TripStatus.UNDONE)
 }

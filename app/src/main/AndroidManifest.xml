@@ -10,6 +10,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
+    <!-- No requerimos que el dispositivo SEA un auto (seguimos siendo una app de celular
+         que se proyecta a Android Auto), así que required="false" -->
+    <uses-feature android:name="android.hardware.type.automotive" android:required="false" />
+
     <application
         android:name=".AutoServiceApp"
         android:allowBackup="true"
@@ -69,6 +73,20 @@
             android:name=".service.TripTrackingService"
             android:exported="false"
             android:foregroundServiceType="location" />
+
+        <!-- Pantalla de Android Auto: vehículo activo + iniciar/finalizar viaje -->
+        <meta-data
+            android:name="androidx.car.app.minCarApiLevel"
+            android:value="1" />
+
+        <service
+            android:name=".car.PitlaneCarAppService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.car.app.CarAppService" />
+                <category android:name="androidx.car.app.category.IOT_VEHICLE" />
+            </intent-filter>
+        </service>
 
     </application>
 

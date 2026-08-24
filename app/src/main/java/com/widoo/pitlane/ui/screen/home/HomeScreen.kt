@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,7 +58,27 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
 
     val context = LocalContext.current
     val numFormat = NumberFormat.getNumberInstance(Locale("es", "AR"))
+    val snackbarHostState = remember { SnackbarHostState() }
 
+    // Muestra el snackbar de "km actualizado" apenas hay un viaje sin reconocer,
+    // sin bloquear la UI con un diálogo.
+    LaunchedEffect(state.pendingTrip?.id) {
+        val trip = state.pendingTrip ?: return@LaunchedEffect
+        val addedKm = (trip.distanceMeters / 1000.0).roundToInt()
+        val newKm = trip.previousKm + addedKm
+        val result = snackbarHostState.showSnackbar(
+            message = "Viaje de ~$addedKm km — odómetro actualizado a ${numFormat.format(newKm)} km",
+            actionLabel = "Deshacer",
+            duration = SnackbarDuration.Long
+        )
+        if (result == SnackbarResult.ActionPerformed) {
+            viewModel.undoTrip(trip)
+        } else {
+            viewModel.acknowledgeTrip(trip)
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -217,9 +238,9 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                             )
                             // Validación
                             val kmValue = kmInput.toIntOrNull() ?: 0
-                            if (kmValue > 0) {
+                            if (kmInput.isNotBlank() && kmValue <= 0) {
                                 Text(
-                                    text = "El kilometraje no puede ser 0)",
+                                    text = "El kilometraje no puede ser 0",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.error
                                 )
@@ -230,13 +251,12 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                         val kmValue = kmInput.toIntOrNull() ?: 0
                         Button(
                             onClick = {
-                                if (kmValue >= vehicle.currentKm) {
+                                if (kmValue > 0) {
                                     viewModel.updateCurrentKm(kmValue)
                                     showEditKmDialog = false
                                 }
                             },
-                            enabled = kmInput.isNotBlank() &&
-                                    (kmInput.toIntOrNull() ?: 0) >= vehicle.currentKm,
+                            enabled = kmInput.isNotBlank() && kmValue > 0,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = ElectricCyan,
                                 contentColor = Color.Black
@@ -280,48 +300,6 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
         // Trip tracking card — estima el km recorrido por GPS
         state.vehicle?.let { vehicle ->
             TripTrackingCard(vehicleId = vehicle.id, context = context)
-        }
-
-        // Diálogo de confirmación al terminar un viaje
-        state.pendingTrip?.let { trip ->
-            val addedKm = (trip.distanceMeters / 1000.0).roundToInt()
-            val newKm = (state.vehicle?.currentKm ?: 0) + addedKm
-            AlertDialog(
-                onDismissRequest = { },
-                title = {
-                    Text(
-                        text = "Viaje finalizado",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                text = {
-                    Text(
-                        text = "Recorriste ~$addedKm km. ¿Actualizamos el odómetro " +
-                                "a ${numFormat.format(newKm)} km?",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                confirmButton = {
-                    Button(
-                        onClick = { viewModel.confirmTrip(trip) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = ElectricCyan,
-                            contentColor = Color.Black
-                        )
-                    ) {
-                        Text("Actualizar", fontWeight = FontWeight.Bold, color = Color.Black)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { viewModel.discardTrip(trip) }) {
-                        Text("Descartar")
-                    }
-                },
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                shape = RoundedCornerShape(16.dp)
-            )
         }
 
         // Alert card for pending reminders
@@ -598,6 +576,12 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 }
             }
         }
+    }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 

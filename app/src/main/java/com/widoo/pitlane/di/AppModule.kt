@@ -1,6 +1,7 @@
 package com.widoo.pitlane.di
 
 import androidx.room.Room
+import com.widoo.pitlane.data.local.ALL_MIGRATIONS
 import com.widoo.pitlane.data.local.AppDatabase
 import com.widoo.pitlane.data.local.PreferencesManager
 import com.widoo.pitlane.data.repository.ServiceRepository
@@ -26,7 +27,7 @@ val appModule = module {
             AppDatabase::class.java,
             "pitlane.db"
         )
-            .fallbackToDestructiveMigration(true)
+            .addMigrations(*ALL_MIGRATIONS)
             .build()
     }
 

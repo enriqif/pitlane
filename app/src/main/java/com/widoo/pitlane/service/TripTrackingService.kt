@@ -15,17 +15,23 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import com.widoo.pitlane.AutoServiceApp
 import com.widoo.pitlane.MainActivity
 import com.widoo.pitlane.R
 import com.widoo.pitlane.data.local.AppDatabase
 import com.widoo.pitlane.data.local.entity.TripEntity
+import com.widoo.pitlane.data.repository.ServiceRepository
 import com.widoo.pitlane.data.repository.TripRepository
 import com.widoo.pitlane.data.repository.VehicleRepository
+import com.widoo.pitlane.ui.widget.LargeWidget
+import com.widoo.pitlane.ui.widget.SmallWidget
+import com.widoo.pitlane.worker.SmartNotificationScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /**
  * Foreground service que mide la distancia recorrida por GPS mientras dura un viaje,
@@ -113,18 +119,38 @@ class TripTrackingService : Service() {
         if (distance >= MIN_TRIP_DISTANCE_METERS) {
             serviceScope.launch {
                 val db = AppDatabase.getInstance(applicationContext)
-                val resolvedVehicleId = if (vId > 0) vId
-                else VehicleRepository(db.vehicleDao()).getActive().first()?.id ?: -1L
+                val vehicleRepository = VehicleRepository(db.vehicleDao())
+                val vehicle = if (vId > 0)
+                    vehicleRepository.getAll().first().firstOrNull { it.id == vId }
+                else
+                    vehicleRepository.getActive().first()
 
-                if (resolvedVehicleId > 0) {
+                if (vehicle != null) {
+                    val addedKm = (distance / 1000.0).roundToInt()
+                    val newKm = vehicle.currentKm + addedKm
+                    vehicleRepository.updateKm(vehicle.id, newKm)
+
                     TripRepository(db.tripDao()).insert(
                         TripEntity(
-                            vehicleId = resolvedVehicleId,
+                            vehicleId = vehicle.id,
                             distanceMeters = distance,
+                            previousKm = vehicle.currentKm,
                             startedAt = start,
                             endedAt = System.currentTimeMillis()
                         )
                     )
+
+                    val latestService = ServiceRepository(db.serviceRecordDao()).getLatest()
+                    if (latestService?.nextServiceKm != null && latestService.nextServiceKm > 0) {
+                        SmartNotificationScheduler.scheduleServiceKmCheck(
+                            context = applicationContext,
+                            currentKm = newKm,
+                            nextServiceKm = latestService.nextServiceKm,
+                            vehicleName = "${vehicle.brand} ${vehicle.model}"
+                        )
+                    }
+
+                    updateWidgets()
                 }
             }
         }
@@ -138,6 +164,20 @@ class TripTrackingService : Service() {
         super.onDestroy()
         if (::locationManager.isInitialized) {
             locationManager.removeUpdates(locationListener)
+        }
+    }
+
+    private suspend fun updateWidgets() {
+        try {
+            val manager = GlanceAppWidgetManager(applicationContext)
+            manager.getGlanceIds(LargeWidget::class.java).forEach { id ->
+                LargeWidget().update(applicationContext, id)
+            }
+            manager.getGlanceIds(SmallWidget::class.java).forEach { id ->
+                SmallWidget().update(applicationContext, id)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("Widget", "Error updating widget: ${e.message}")
         }
     }
 

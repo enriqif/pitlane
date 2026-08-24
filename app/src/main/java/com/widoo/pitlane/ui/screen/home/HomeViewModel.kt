@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
-import kotlin.math.roundToInt
 
 data class HomeUiState(
     val isLoading: Boolean = true,
@@ -175,30 +174,20 @@ class HomeViewModel(
         }
     }
 
-    fun confirmTrip(trip: TripEntity) {
+    // El km ya se aplicó en TripTrackingService al terminar el viaje; acá solo
+    // confirmamos que la UI ya se lo mostró al usuario (para que el snackbar no
+    // vuelva a aparecer en el próximo arranque).
+    fun acknowledgeTrip(trip: TripEntity) {
         viewModelScope.launch {
-            val vehicle = uiState.value.vehicle ?: return@launch
-            val addedKm = (trip.distanceMeters / 1000.0).roundToInt()
-            val newKm = vehicle.currentKm + addedKm
-            vehicleRepository.updateKm(vehicle.id, newKm)
-            tripRepository.confirm(trip)
-
-            val latestService = uiState.value.latestService
-            if (latestService?.nextServiceKm != null && latestService.nextServiceKm > 0) {
-                SmartNotificationScheduler.scheduleServiceKmCheck(
-                    context = context,
-                    currentKm = newKm,
-                    nextServiceKm = latestService.nextServiceKm,
-                    vehicleName = "${vehicle.brand} ${vehicle.model}"
-                )
-            }
-            updateWidgets()
+            tripRepository.acknowledge(trip)
         }
     }
 
-    fun discardTrip(trip: TripEntity) {
+    fun undoTrip(trip: TripEntity) {
         viewModelScope.launch {
-            tripRepository.discard(trip)
+            vehicleRepository.updateKm(trip.vehicleId, trip.previousKm)
+            tripRepository.markUndone(trip)
+            updateWidgets()
         }
     }
 
