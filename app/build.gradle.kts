@@ -138,26 +138,44 @@ afterEvaluate {
                 val versionName = AppVersion.getVersionName()
                 val versionCode = AppVersion.getVersionCode()
                 val newName = "pitlane-${flavorName}-release-v${versionName}(${versionCode})-${date}.aab"
+                val renamedPrefix = "pitlane-${flavorName}-release-"
+                val originalFileName = "app-${flavorName}-release.aab"
 
-                // El AAB está en app/prod/release/, no en app/build/
-                val outputDir = project.file("${flavorName}/release")
+                // El AAB puede terminar en dos lugares distintos según cómo se dispare el
+                // build: Android Studio ("Generate Signed Bundle") lo deja en
+                // app/<flavor>/release/, mientras que la CLI de Gradle usa la ubicación
+                // estándar de AGP (build/outputs/bundle/). Buscamos en ambas y nos
+                // quedamos con la más reciente, para no agarrar un .aab viejo por error.
+                val candidateDirs = listOf(
+                    project.file("${flavorName}/release"),
+                    project.layout.buildDirectory.dir("outputs/bundle/${flavorName}Release").get().asFile
+                )
+                val original = candidateDirs
+                    .map { File(it, originalFileName) }
+                    .filter { it.exists() }
+                    .maxByOrNull { it.lastModified() }
 
-                println(">>> Buscando en: ${outputDir.absolutePath}")
+                if (original != null) {
+                    val outputDir = original.parentFile
+                    println(">>> AAB encontrado en: ${original.absolutePath}")
 
-                if (outputDir.exists()) {
+                    // Limpiamos copias renombradas de builds anteriores: si no lo
+                    // hiciéramos, quedan .aab viejos con otro versionCode dando vueltas
+                    // en la carpeta y es fácil subir el equivocado a Play Console.
                     outputDir.listFiles()?.forEach { file ->
-                        if (file.extension == "aab" && file.name != newName) {
-                            val renamed = File(outputDir, newName)
-                            // Copiamos (no movemos): AGP genera un task interno
-                            // (BundleIdeModelProducerTask) que espera encontrar el .aab
-                            // con su nombre original después de este task, así que no
-                            // podemos hacer desaparecer ese archivo.
-                            file.copyTo(renamed, overwrite = true)
-                            println(">>> ✅ Copia creada: ${file.name} → ${renamed.name}")
+                        if (file.extension == "aab" && file.name.startsWith(renamedPrefix)) {
+                            file.delete()
                         }
                     }
+
+                    val renamed = File(outputDir, newName)
+                    // Copiamos (no movemos) el original: AGP genera un task interno
+                    // (BundleIdeModelProducerTask) que espera encontrarlo con su nombre
+                    // original después de este task, así que no podemos hacerlo desaparecer.
+                    original.copyTo(renamed, overwrite = true)
+                    println(">>> ✅ Copia creada: ${original.name} → ${renamed.name}")
                 } else {
-                    println(">>> ❌ Directorio no existe: ${outputDir.absolutePath}")
+                    println(">>> ❌ No se encontró $originalFileName en ninguna ubicación conocida")
                 }
             }
         }
