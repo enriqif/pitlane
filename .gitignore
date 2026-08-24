@@ -13,3 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+app/prod/release/app-prod-release.aab
+/app/prod
+/app/prod/release
+*.aab
+*.tab
+/buildSrc/build/

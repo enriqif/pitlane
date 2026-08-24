@@ -143,10 +143,14 @@ afterEvaluate {
 
                 if (outputDir.exists()) {
                     outputDir.listFiles()?.forEach { file ->
-                        if (file.extension == "aab") {
+                        if (file.extension == "aab" && file.name != newName) {
                             val renamed = File(outputDir, newName)
-                            val success = file.renameTo(renamed)
-                            println(">>> ✅ ${file.name} → ${renamed.name} (success=$success)")
+                            // Copiamos (no movemos): AGP genera un task interno
+                            // (BundleIdeModelProducerTask) que espera encontrar el .aab
+                            // con su nombre original después de este task, así que no
+                            // podemos hacer desaparecer ese archivo.
+                            file.copyTo(renamed, overwrite = true)
+                            println(">>> ✅ Copia creada: ${file.name} → ${renamed.name}")
                         }
                     }
                 } else {
