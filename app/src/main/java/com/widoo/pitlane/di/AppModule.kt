@@ -1,7 +1,5 @@
 package com.widoo.pitlane.di
 
-import androidx.room.Room
-import com.widoo.pitlane.data.local.ALL_MIGRATIONS
 import com.widoo.pitlane.data.local.AppDatabase
 import com.widoo.pitlane.data.local.PreferencesManager
 import com.widoo.pitlane.data.repository.ServiceRepository
@@ -21,15 +19,11 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
-    single {
-        Room.databaseBuilder(
-            androidContext(),
-            AppDatabase::class.java,
-            "pitlane.db"
-        )
-            .addMigrations(*ALL_MIGRATIONS)
-            .build()
-    }
+    // Misma instancia singleton que usan TripTrackingService y los widgets
+    // (AppDatabase.getInstance) — si Koin armara la suya propia con
+    // Room.databaseBuilder, el Flow de Room no se invalidaría entre instancias y la UI
+    // no se enteraría de escrituras hechas desde el service hasta reabrir la app.
+    single { AppDatabase.getInstance(androidContext()) }
 
     single { get<AppDatabase>().serviceRecordDao() }
     single { get<AppDatabase>().fuelLogDao() }
