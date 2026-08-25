@@ -323,13 +323,17 @@ private fun KmBetweenServicesChart(services: List<ServiceRecordEntity>) {
 @Composable
 private fun FuelConsumptionChart(fuelLogs: List<FuelLogEntity>) {
     val modelProducer = remember { CartesianChartModelProducer() }
-    val sorted = remember(fuelLogs) { fuelLogs.sortedBy { it.date } }
+    // Solo las cargas que tienen km y litros — las que se cargaron con "solo el monto"
+    // no aportan un punto de consumo.
+    val sorted = remember(fuelLogs) {
+        fuelLogs.filter { it.km != null && it.liters != null }.sortedBy { it.date }
+    }
 
     // Calculate rolling consumption per fill-up
     val consumptions = remember(fuelLogs) {
         sorted.zipWithNext { a, b ->
-            val kmDiff = (b.km - a.km).toFloat()
-            if (kmDiff > 0) (a.liters.toFloat() / kmDiff) * 100f else 0f
+            val kmDiff = (b.km!! - a.km!!).toFloat()
+            if (kmDiff > 0) (a.liters!!.toFloat() / kmDiff) * 100f else 0f
         }.filter { it > 0 }
     }
 

@@ -64,11 +64,12 @@ class LargeWidget : GlanceAppWidget() {
             .filter { it.date >= startOfMonth }
             .sumOf { it.totalCost }
 
-        // Consumo promedio
-        val avgConsumption = if (fuelLogs.size >= 2) {
-            val sorted = fuelLogs.sortedBy { it.km }
-            val kmDiff = (sorted.last().km - sorted.first().km).toDouble()
-            val totalLiters = sorted.dropLast(1).sumOf { it.liters }
+        // Consumo promedio — solo con las cargas que tienen km y litros cargados
+        val fuelLogsWithData = fuelLogs.filter { it.km != null && it.liters != null }
+        val avgConsumption = if (fuelLogsWithData.size >= 2) {
+            val sorted = fuelLogsWithData.sortedBy { it.km }
+            val kmDiff = (sorted.last().km!! - sorted.first().km!!).toDouble()
+            val totalLiters = sorted.dropLast(1).sumOf { it.liters!! }
             if (kmDiff > 0) (totalLiters / kmDiff) * 100 else 0.0
         } else 0.0
 

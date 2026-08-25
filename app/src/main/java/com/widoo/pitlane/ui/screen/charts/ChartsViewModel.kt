@@ -122,10 +122,11 @@ class ChartsViewModel(
     }
 
     private fun calculateAvgConsumption(fuelLogs: List<FuelLogEntity>): Double {
-        if (fuelLogs.size < 2) return 0.0
-        val sorted = fuelLogs.sortedBy { it.km }
-        val kmDiff = (sorted.last().km - sorted.first().km).toDouble()
-        val totalLiters = sorted.dropLast(1).sumOf { it.liters }
+        val withData = fuelLogs.filter { it.km != null && it.liters != null }
+        if (withData.size < 2) return 0.0
+        val sorted = withData.sortedBy { it.km }
+        val kmDiff = (sorted.last().km!! - sorted.first().km!!).toDouble()
+        val totalLiters = sorted.dropLast(1).sumOf { it.liters!! }
         if (kmDiff <= 0) return 0.0
         return (totalLiters / kmDiff) * 100
     }

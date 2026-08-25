@@ -81,4 +81,41 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
-val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // km/liters/pricePerLiter pasan a ser opcionales: solo el monto total es
+        // obligatorio (para poder cargar una recarga vieja sin recordar el detalle).
+        // SQLite no permite aflojar un NOT NULL con ALTER TABLE, así que reconstruimos
+        // la tabla.
+        db.execSQL(
+            """
+            CREATE TABLE `fuel_logs_new` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `vehicleId` INTEGER NOT NULL,
+                `date` INTEGER NOT NULL,
+                `km` INTEGER,
+                `liters` REAL,
+                `pricePerLiter` REAL,
+                `totalCost` REAL NOT NULL,
+                `station` TEXT NOT NULL,
+                `remoteId` TEXT NOT NULL,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                `isDeleted` INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO `fuel_logs_new`
+            SELECT id, vehicleId, date, km, liters, pricePerLiter, totalCost, station,
+                   remoteId, createdAt, updatedAt, isDeleted
+            FROM `fuel_logs`
+            """.trimIndent()
+        )
+        db.execSQL("DROP TABLE `fuel_logs`")
+        db.execSQL("ALTER TABLE `fuel_logs_new` RENAME TO `fuel_logs`")
+    }
+}
+
+val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)

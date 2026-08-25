@@ -50,7 +50,8 @@ data class AddFuelUiState(
     // Validation errors
     val kmError: String? = null,
     val litersError: String? = null,
-    val priceError: String? = null
+    val priceError: String? = null,
+    val totalError: String? = null
 )
 
 data class FuelUiState(
@@ -132,7 +133,7 @@ class FuelViewModel(
     }
 
     fun onTotalCostChange(v: String) {
-        _addState.value = _addState.value.copy(totalCost = v)
+        _addState.value = _addState.value.copy(totalCost = v, totalError = null)
     }
 
     private fun recalculateTotal() {
@@ -140,62 +141,54 @@ class FuelViewModel(
         val price = _addState.value.pricePerLiter.toDoubleOrNull() ?: return
         val total = liters * price
         _addState.value = _addState.value.copy(
-            totalCost = String.format("%.2f", total)
+            totalCost = String.format("%.2f", total),
+            totalError = null
         )
     }
 
+    // El monto es el único campo obligatorio — km, litros y precio son opcionales,
+    // para poder cargar una recarga vieja de la que no te acordás el detalle exacto.
     fun validateAndCheck(): Boolean {
         val s = _addState.value
-        val vehicle = uiState.value.vehicle
-        val lastLog = uiState.value.fuelLogs.firstOrNull()
         var hasError = false
 
-        // Km validation
-        val km = s.km.toIntOrNull()
-        when {
-            km == null || km <= 0 -> {
-                _addState.value = _addState.value.copy(
-                    kmError = "Ingresá un kilometraje válido"
-                )
-                hasError = true
-            }
-            vehicle != null && km < vehicle.currentKm -> {
-                _addState.value = _addState.value.copy(
-                    kmError = "El km debe ser mayor al actual (${vehicle.currentKm} km)"
-                )
-                hasError = true
-            }
-            lastLog != null && km < lastLog.km -> {
-                _addState.value = _addState.value.copy(
-                    kmError = "El km debe ser mayor a la última carga (${lastLog.km} km)"
-                )
+        if (s.km.isNotBlank()) {
+            val km = s.km.toIntOrNull()
+            if (km == null || km <= 0) {
+                _addState.value = _addState.value.copy(kmError = "Ingresá un kilometraje válido")
                 hasError = true
             }
         }
 
-        // Liters validation
-        val liters = s.liters.toDoubleOrNull()
-        when {
-            liters == null || liters <= 0 -> {
-                _addState.value = _addState.value.copy(
-                    litersError = "Ingresá una cantidad válida"
-                )
-                hasError = true
+        if (s.liters.isNotBlank()) {
+            val liters = s.liters.toDoubleOrNull()
+            when {
+                liters == null || liters <= 0 -> {
+                    _addState.value = _addState.value.copy(
+                        litersError = "Ingresá una cantidad válida"
+                    )
+                    hasError = true
+                }
+                liters > 200 -> {
+                    _addState.value = _addState.value.copy(
+                        litersError = "Cantidad de litros muy alta (máx 200L)"
+                    )
+                    hasError = true
+                }
             }
-            liters > 200 -> {
-                _addState.value = _addState.value.copy(
-                    litersError = "Cantidad de litros muy alta (máx 200L)"
-                )
+        }
+
+        if (s.pricePerLiter.isNotBlank()) {
+            val price = s.pricePerLiter.toDoubleOrNull()
+            if (price == null || price <= 0) {
+                _addState.value = _addState.value.copy(priceError = "Ingresá un precio válido")
                 hasError = true
             }
         }
 
-        // Price validation
-        val price = s.pricePerLiter.toDoubleOrNull()
-        if (price == null || price <= 0) {
-            _addState.value = _addState.value.copy(
-                priceError = "Ingresá un precio válido"
-            )
+        val total = s.totalCost.toDoubleOrNull()
+        if (total == null || total <= 0) {
+            _addState.value = _addState.value.copy(totalError = "Ingresá el monto gastado")
             hasError = true
         }
 
@@ -204,12 +197,11 @@ class FuelViewModel(
 
     fun isFormValid(): Boolean {
         val s = _addState.value
-        return s.km.isNotBlank() &&
-                s.liters.isNotBlank() &&
-                s.pricePerLiter.isNotBlank() &&
+        return s.totalCost.isNotBlank() &&
                 s.kmError == null &&
                 s.litersError == null &&
-                s.priceError == null
+                s.priceError == null &&
+                s.totalError == null
     }
 
     private fun calculateMonthlyTotal(logs: List<FuelLogEntity>): Double {
@@ -222,10 +214,11 @@ class FuelViewModel(
     }
 
     private fun calculateAvgConsumption(logs: List<FuelLogEntity>): Double {
-        if (logs.size < 2) return 0.0
-        val sorted = logs.sortedBy { it.km }
-        val kmDiff = (sorted.last().km - sorted.first().km).toDouble()
-        val totalLiters = sorted.dropLast(1).sumOf { it.liters }
+        val withData = logs.filter { it.km != null && it.liters != null }
+        if (withData.size < 2) return 0.0
+        val sorted = withData.sortedBy { it.km }
+        val kmDiff = (sorted.last().km!! - sorted.first().km!!).toDouble()
+        val totalLiters = sorted.dropLast(1).sumOf { it.liters!! }
         if (kmDiff <= 0) return 0.0
         return (totalLiters / kmDiff) * 100
     }
@@ -234,6 +227,10 @@ class FuelViewModel(
         if (logs.size < 2) return null
         val latest = logs[0]
         val previous = logs[1]
+        if (latest.km == null || previous.km == null ||
+            latest.liters == null || previous.liters == null ||
+            latest.pricePerLiter == null || previous.pricePerLiter == null
+        ) return null
 
         val costDiff = latest.totalCost - previous.totalCost
         val costDiffPercent = if (previous.totalCost > 0)
@@ -262,10 +259,10 @@ class FuelViewModel(
                 else
                     vehicleRepository.getActive().first()?.id ?: return@launch
 
-                val liters = state.liters.toDoubleOrNull() ?: 0.0
-                val price = state.pricePerLiter.toDoubleOrNull() ?: 0.0
-                val total = state.totalCost.toDoubleOrNull() ?: (liters * price)
-                val km = state.km.toIntOrNull() ?: 0
+                val liters = state.liters.toDoubleOrNull()
+                val price = state.pricePerLiter.toDoubleOrNull()
+                val total = state.totalCost.toDoubleOrNull() ?: return@launch
+                val km = state.km.toIntOrNull()
 
                 fuelRepository.insert(
                     FuelLogEntity(
@@ -278,17 +275,20 @@ class FuelViewModel(
                         station = state.station
                     )
                 )
-                // Verificar precio vs carga anterior
-                val previousLog = uiState.value.fuelLogs.firstOrNull()
-                if (previousLog != null && price > 0) {
+                // Verificar precio vs carga anterior (solo si tenemos precio de ambas)
+                val previousPrice = uiState.value.fuelLogs.firstOrNull()?.pricePerLiter
+                if (previousPrice != null && price != null && price > 0) {
                     SmartNotificationScheduler.checkFuelPriceIncrease(
                         context = context,
                         currentPrice = price,
-                        previousPrice = previousLog.pricePerLiter,
+                        previousPrice = previousPrice,
                         station = state.station.ifBlank { "la estación" }
                     )
                 }
-                if (km > 0) {
+                // Solo empujamos el odómetro hacia adelante: si es una carga vieja que se
+                // está cargando ahora con un km menor al actual, no queremos retrocederlo.
+                val vehicleCurrentKm = uiState.value.vehicle?.currentKm ?: 0
+                if (km != null && km > 0 && km >= vehicleCurrentKm) {
                     vehicleRepository.updateKm(vehicleId, km)
                     updateWidgets()
                 }

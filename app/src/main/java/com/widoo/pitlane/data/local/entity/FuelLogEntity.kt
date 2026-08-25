@@ -9,9 +9,9 @@ data class FuelLogEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val vehicleId: Long,
     val date: Long,
-    val km: Int,
-    val liters: Double,
-    val pricePerLiter: Double,
+    val km: Int? = null,
+    val liters: Double? = null,
+    val pricePerLiter: Double? = null,
     val totalCost: Double,
     val station: String = "",
     // Campos para la futura sincronización con la API

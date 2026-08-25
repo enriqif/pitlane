@@ -345,17 +345,19 @@ private fun FuelLogCard(log: FuelLogEntity) {
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "$date · ${formatter.format(log.km)} km",
+                    text = log.km?.let { "$date · ${formatter.format(it)} km" } ?: date,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                // ← Price per liter
-                Text(
-                    text = "$${formatter.format(log.pricePerLiter)}/L",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = LocalAccentColor.current,
-                    fontWeight = FontWeight.Medium
-                )
+                // ← Price per liter (si se cargó)
+                log.pricePerLiter?.let {
+                    Text(
+                        text = "$${formatter.format(it)}/L",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LocalAccentColor.current,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
 
             // Right — total and liters
@@ -366,16 +368,18 @@ private fun FuelLogCard(log: FuelLogEntity) {
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = ElectricCyan.copy(alpha = 0.15f)
-                ) {
-                    Text(
-                        text = "${String.format("%.1f", log.liters)} L",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = LocalAccentColor.current,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+                log.liters?.let {
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = ElectricCyan.copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = "${String.format("%.1f", it)} L",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = LocalAccentColor.current,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                 }
             }
         }
@@ -423,11 +427,43 @@ private fun AddFuelSheet(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            // Km
+            // Total — el único campo obligatorio. Se autocompleta si cargás litros y
+            // precio, pero también se puede escribir directo (útil para una carga vieja
+            // de la que no te acordás el detalle exacto).
+            OutlinedTextField(
+                value = state.totalCost,
+                onValueChange = viewModel::onTotalCostChange,
+                label = { Text("Monto total") },
+                prefix = { Text("$", color = LocalAccentColor.current) },
+                isError = state.totalError != null,
+                supportingText = {
+                    Text(
+                        text = state.totalError ?: "El único dato obligatorio",
+                        color = if (state.totalError != null) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal,
+                    imeAction = ImeAction.Next
+                ),
+                colors = fuelTextFieldColors()
+            )
+
+            Text(
+                text = "Detalles opcionales",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Km (opcional)
             OutlinedTextField(
                 value = state.km,
                 onValueChange = viewModel::onKmChange,
-                label = { Text("Kilometraje actual") },
+                label = { Text("Kilometraje") },
                 suffix = { Text("km", color = LocalAccentColor.current) },
                 isError = state.kmError != null,
                 supportingText = state.kmError?.let {
@@ -443,7 +479,7 @@ private fun AddFuelSheet(
                 colors = fuelTextFieldColors()
             )
 
-            // Litros + Precio
+            // Litros + Precio (opcionales)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -485,18 +521,6 @@ private fun AddFuelSheet(
                     colors = fuelTextFieldColors()
                 )
             }
-
-            // Total — read only, auto calculated
-            OutlinedTextField(
-                value = state.totalCost,
-                onValueChange = {},
-                label = { Text("Total") },
-                prefix = { Text("$", color = LocalAccentColor.current) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                readOnly = true,
-                colors = fuelTextFieldColors()
-            )
 
             // Estación opcional
             OutlinedTextField(

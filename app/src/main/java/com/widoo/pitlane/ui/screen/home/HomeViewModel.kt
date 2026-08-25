@@ -101,19 +101,20 @@ class HomeViewModel(
             .filter { it.date >= startOfLastMonth && it.date < startOfMonth }
             .sumOf { it.totalCost }
 
-        // Consumo promedio
-        val avgConsumption = if (fuelLogs.size >= 2) {
-            val sorted = fuelLogs.sortedBy { it.km }
-            val kmDiff = (sorted.last().km - sorted.first().km).toDouble()
-            val totalLiters = sorted.dropLast(1).sumOf { it.liters }
+        // Consumo promedio — solo con las cargas que tienen km y litros cargados
+        val logsWithData = fuelLogs.filter { it.km != null && it.liters != null }
+        val avgConsumption = if (logsWithData.size >= 2) {
+            val sorted = logsWithData.sortedBy { it.km }
+            val kmDiff = (sorted.last().km!! - sorted.first().km!!).toDouble()
+            val totalLiters = sorted.dropLast(1).sumOf { it.liters!! }
             if (kmDiff > 0) (totalLiters / kmDiff) * 100 else 0.0
         } else 0.0
 
         // Consumo trend — comparar últimas 2 cargas vs las 2 anteriores
-        val consumptionTrend = if (fuelLogs.size >= 4) {
-            val sorted = fuelLogs.sortedBy { it.km }
-            val recentAvg = sorted.takeLast(2).map { it.liters }.average()
-            val previousAvg = sorted.dropLast(2).takeLast(2).map { it.liters }.average()
+        val consumptionTrend = if (logsWithData.size >= 4) {
+            val sorted = logsWithData.sortedBy { it.km }
+            val recentAvg = sorted.takeLast(2).map { it.liters!! }.average()
+            val previousAvg = sorted.dropLast(2).takeLast(2).map { it.liters!! }.average()
             ((previousAvg - recentAvg) / previousAvg * 100).toFloat()
         } else 0f
 
