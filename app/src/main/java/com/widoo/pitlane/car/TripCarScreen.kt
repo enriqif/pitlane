@@ -10,10 +10,12 @@ import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import androidx.lifecycle.lifecycleScope
 import com.widoo.pitlane.data.local.AppDatabase
+import com.widoo.pitlane.data.local.PreferencesManager
 import com.widoo.pitlane.data.local.entity.VehicleEntity
 import com.widoo.pitlane.data.repository.VehicleRepository
 import com.widoo.pitlane.service.TripTracker
 import com.widoo.pitlane.service.TripTrackingService
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
@@ -21,17 +23,25 @@ import java.util.Locale
 /**
  * Pantalla única mostrada en Android Auto: vehículo activo + botón para
  * iniciar/finalizar la medición de viaje por GPS.
+ *
+ * Si el usuario activó el seguimiento automático, apenas se abre esta pantalla (es decir,
+ * apenas el auto está conectado y reconoce el teléfono) arrancamos la medición sola. El
+ * arranque desde acá es confiable porque el host de Android Auto nos tiene en foreground,
+ * a diferencia del observer de background de CarConnectionMonitor.
  */
 class TripCarScreen(carContext: CarContext) : Screen(carContext) {
 
     private val vehicleRepository = VehicleRepository(AppDatabase.getInstance(carContext).vehicleDao())
+    private val preferencesManager = PreferencesManager(carContext.applicationContext)
     private var vehicle: VehicleEntity? = null
     private var isTracking = false
+    private var didAutoStart = false
 
     init {
         lifecycleScope.launch {
             vehicleRepository.getActive().collect {
                 vehicle = it
+                maybeAutoStart()
                 invalidate()
             }
         }
@@ -41,6 +51,15 @@ class TripCarScreen(carContext: CarContext) : Screen(carContext) {
                 invalidate()
             }
         }
+    }
+
+    private suspend fun maybeAutoStart() {
+        if (didAutoStart) return
+        val v = vehicle ?: return
+        if (TripTracker.state.value.isTracking) return
+        if (!preferencesManager.isAutoTripTrackingEnabled.first()) return
+        didAutoStart = true
+        runCatching { TripTrackingService.start(carContext, v.id) }
     }
 
     override fun onGetTemplate(): Template {
@@ -68,6 +87,7 @@ class TripCarScreen(carContext: CarContext) : Screen(carContext) {
                         if (isTracking) {
                             TripTrackingService.stop(carContext)
                         } else {
+                            didAutoStart = true // el usuario ya decidió manualmente
                             TripTrackingService.start(carContext, v.id)
                         }
                     }

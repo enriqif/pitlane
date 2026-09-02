@@ -1,5 +1,12 @@
 package com.widoo.pitlane.ui.screen.profile
 
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -14,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -22,6 +30,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import com.widoo.pitlane.data.local.VehicleCatalog
 import com.widoo.pitlane.data.local.entity.VehicleEntity
 import com.widoo.pitlane.ui.theme.ElectricCyan
@@ -29,16 +40,107 @@ import com.widoo.pitlane.ui.theme.LocalAccentColor
 import com.widoo.pitlane.ui.theme.PitlaneTheme
 import org.koin.androidx.compose.koinViewModel
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun VehicleProfileScreen(
     viewModel: VehicleProfileViewModel = koinViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
     val editState by viewModel.editState.collectAsState()
+    val autoTrackingEnabled by viewModel.autoTrackingEnabled.collectAsState()
+
+    val context = LocalContext.current
+
+    // Flujo de habilitación del seguimiento automático: divulgación previa (requisito de
+    // Play para ubicación en segundo plano) → ubicación → ubicación en segundo plano →
+    // notificaciones → recién ahí se guarda la preferencia.
+    var showDisclosure by remember { mutableStateOf(false) }
+    var enableInProgress by remember { mutableStateOf(false) }
+    var showPermissionHelp by remember { mutableStateOf(false) }
+
+    val notificationPermission =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+            rememberPermissionState(Manifest.permission.POST_NOTIFICATIONS)
+        else null
+
+    fun finishEnable() {
+        enableInProgress = false
+        showPermissionHelp = false
+        viewModel.setAutoTracking(true)
+    }
+
+    val backgroundLocationLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        // Aunque el usuario no conceda "Permitir todo el tiempo", igual dejamos activada la
+        // función: va a andar mientras la app esté en memoria y, si no, cae a la
+        // notificación de un toque. La ayuda para ir a Ajustes queda visible.
+        if (enableInProgress) {
+            if (notificationPermission != null && !notificationPermission.status.isGranted) {
+                notificationPermission.launchPermissionRequest()
+            }
+            finishEnable()
+        }
+    }
+
+    val fineLocationPermission = rememberPermissionState(
+        Manifest.permission.ACCESS_FINE_LOCATION
+    ) { granted ->
+        if (!enableInProgress) return@rememberPermissionState
+        if (granted) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                backgroundLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+            } else {
+                if (notificationPermission != null && !notificationPermission.status.isGranted) {
+                    notificationPermission.launchPermissionRequest()
+                }
+                finishEnable()
+            }
+        } else {
+            enableInProgress = false
+            showPermissionHelp = true
+        }
+    }
+
+    fun advanceEnableFlow() {
+        enableInProgress = true
+        when {
+            !fineLocationPermission.status.isGranted ->
+                fineLocationPermission.launchPermissionRequest()
+
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ->
+                backgroundLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+
+            else -> {
+                if (notificationPermission != null && !notificationPermission.status.isGranted) {
+                    notificationPermission.launchPermissionRequest()
+                }
+                finishEnable()
+            }
+        }
+    }
 
     VehicleProfileContent(
         state = state,
         editState = editState,
+        autoTrackingEnabled = autoTrackingEnabled,
+        showAutoTrackingHelp = showPermissionHelp,
+        onAutoTrackingToggle = { enabled ->
+            if (enabled) {
+                showDisclosure = true
+            } else {
+                showPermissionHelp = false
+                viewModel.setAutoTracking(false)
+            }
+        },
+        onOpenAppSettings = {
+            context.startActivity(
+                Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.fromParts("package", context.packageName, null)
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        },
         onBrandChange = viewModel::onBrandChange,
         onModelChange = viewModel::onModelChange,
         onYearChange = viewModel::onYearChange,
@@ -51,6 +153,45 @@ fun VehicleProfileScreen(
         onAddNew = viewModel::addNewVehicle,
         isFormValid = viewModel.isEditFormValid()
     )
+
+    if (showDisclosure) {
+        AlertDialog(
+            onDismissRequest = { showDisclosure = false },
+            icon = { Text("🚗", fontSize = 28.sp) },
+            title = { Text("Seguimiento automático de viajes", fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Mi Vehículo va a usar tu ubicación —incluso con la app cerrada o sin " +
+                        "usar— para medir la distancia de cada viaje automáticamente: empieza " +
+                        "cuando el teléfono se conecta a Android Auto y termina cuando se " +
+                        "desconecta. Con eso actualizamos el odómetro solo.\n\n" +
+                        "Se usa únicamente para eso, queda todo en el teléfono y podés " +
+                        "desactivarlo cuando quieras desde esta pantalla.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDisclosure = false
+                        advanceEnableFlow()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ElectricCyan,
+                        contentColor = Color.Black
+                    )
+                ) {
+                    Text("Continuar", fontWeight = FontWeight.Bold, color = Color.Black)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDisclosure = false }) { Text("Cancelar") }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,6 +199,10 @@ fun VehicleProfileScreen(
 fun VehicleProfileContent(
     state: VehicleProfileUiState,
     editState: EditVehicleUiState,
+    autoTrackingEnabled: Boolean = false,
+    showAutoTrackingHelp: Boolean = false,
+    onAutoTrackingToggle: (Boolean) -> Unit = {},
+    onOpenAppSettings: () -> Unit = {},
     onBrandChange: (String) -> Unit,
     onModelChange: (String) -> Unit,
     onYearChange: (String) -> Unit,
@@ -147,6 +292,22 @@ fun VehicleProfileContent(
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Ajustes",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        AutoTrackingCard(
+            enabled = autoTrackingEnabled,
+            showHelp = showAutoTrackingHelp,
+            onToggle = onAutoTrackingToggle,
+            onOpenAppSettings = onOpenAppSettings
+        )
     }
 
     // Edit sheet
@@ -245,6 +406,87 @@ fun VehicleProfileContent(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             shape = RoundedCornerShape(16.dp)
         )
+    }
+}
+
+@Composable
+private fun AutoTrackingCard(
+    enabled: Boolean,
+    showHelp: Boolean,
+    onToggle: (Boolean) -> Unit,
+    onOpenAppSettings: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(ElectricCyan.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.Route,
+                        contentDescription = null,
+                        tint = LocalAccentColor.current,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Seguimiento automático de viajes",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Mide la distancia sola al conectar Android Auto y " +
+                                "actualiza el odómetro al desconectar",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = onToggle,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.Black,
+                        checkedTrackColor = ElectricCyan,
+                        uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                    )
+                )
+            }
+
+            if (showHelp) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Para que funcione con la app cerrada, Android necesita el " +
+                            "permiso de ubicación en \"Permitir todo el tiempo\".",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+                TextButton(
+                    onClick = onOpenAppSettings,
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text("Abrir ajustes de la app", color = LocalAccentColor.current)
+                }
+            }
+        }
     }
 }
 

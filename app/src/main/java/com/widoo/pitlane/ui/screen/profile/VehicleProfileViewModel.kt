@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.widoo.pitlane.data.local.PreferencesManager
 import com.widoo.pitlane.data.local.VehicleCatalog
 import com.widoo.pitlane.data.local.entity.VehicleEntity
 import com.widoo.pitlane.data.repository.VehicleRepository
+import com.widoo.pitlane.service.CarConnectionMonitor
 import com.widoo.pitlane.ui.widget.LargeWidget
 import com.widoo.pitlane.ui.widget.SmallWidget
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +38,7 @@ data class VehicleProfileUiState(
 
 class VehicleProfileViewModel(
     private val vehicleRepository: VehicleRepository,
+    private val preferencesManager: PreferencesManager,
     private val context: Context
 ) : ViewModel() {
 
@@ -44,6 +47,19 @@ class VehicleProfileViewModel(
 
     private val _editState = MutableStateFlow(EditVehicleUiState())
     val editState: StateFlow<EditVehicleUiState> = _editState.asStateFlow()
+
+    /** Seguimiento automático de viajes al conectar/desconectar Android Auto. */
+    val autoTrackingEnabled: StateFlow<Boolean> = preferencesManager.isAutoTripTrackingEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun setAutoTracking(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesManager.setAutoTripTracking(enabled)
+            // Deja el monitor de Android Auto escuchando ya mismo, sin esperar a
+            // reiniciar la app. Si ya estaba activo, start() no hace nada.
+            if (enabled) CarConnectionMonitor.start(context.applicationContext)
+        }
+    }
 
     init {
         viewModelScope.launch {

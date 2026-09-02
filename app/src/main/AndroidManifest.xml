@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Solo se pide (y solo hace falta) si el usuario activa el seguimiento automático
+         de viajes: la medición arranca con la app cerrada al conectar Android Auto. -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
@@ -73,6 +76,17 @@
             android:name=".service.TripTrackingService"
             android:exported="false"
             android:foregroundServiceType="location" />
+
+        <!-- Re-arma el monitor de Android Auto tras reiniciar el teléfono o actualizar la
+             app, para el seguimiento automático de viajes -->
+        <receiver
+            android:name=".receiver.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Pantalla de Android Auto: vehículo activo + iniciar/finalizar viaje -->
         <meta-data

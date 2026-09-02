@@ -1,15 +1,21 @@
 package com.widoo.pitlane.service
 
+import android.Manifest
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Handler
+import android.os.Looper
 import androidx.car.app.connection.CarConnection
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.widoo.pitlane.AutoServiceApp
 import com.widoo.pitlane.MainActivity
 import com.widoo.pitlane.R
 import com.widoo.pitlane.data.local.AppDatabase
+import com.widoo.pitlane.data.local.PreferencesManager
 import com.widoo.pitlane.data.repository.VehicleRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,13 +24,19 @@ import kotlinx.coroutines.launch
 
 /**
  * Observa la conexión con Android Auto (proyección desde el teléfono o Android Automotive
- * nativo) mientras el proceso de la app esté vivo, y sugiere iniciar la medición de viaje
- * apenas se conecta — sin tener que abrir la app y buscar el botón manualmente.
+ * nativo) mientras el proceso de la app esté vivo.
  *
- * Limitación conocida: solo detecta la conexión mientras el proceso de la app sigue vivo
- * (Android no permite escuchar esto indefinidamente en background sin un foreground service
- * dedicado). En uso normal el proceso suele seguir cacheado, así que alcanza para el caso
- * típico de "subís al auto con el teléfono en el bolsillo".
+ * - Si el usuario activó "Seguimiento automático de viajes" (ver [PreferencesManager]),
+ *   arranca solo [TripTrackingService] al conectarse y lo finaliza al desconectarse.
+ * - Si NO lo activó, solo muestra una notificación sugiriendo medir el viaje (comportamiento
+ *   histórico), sin tocar el GPS por su cuenta.
+ *
+ * Limitación conocida: solo detecta la conexión mientras el proceso de la app sigue vivo.
+ * Android no permite escuchar esto indefinidamente en background sin un foreground service
+ * dedicado, y además a partir de Android 12 arrancar un foreground service desde background
+ * puede estar bloqueado — por eso, si el arranque automático falla, caemos a la notificación
+ * de un toque como respaldo. En el caso típico ("subís al auto con el teléfono en el
+ * bolsillo, habiendo usado la app hace poco") el proceso suele seguir cacheado y alcanza.
  */
 object CarConnectionMonitor {
     private const val START_NOTIFICATION_ID = 3002
@@ -33,18 +45,32 @@ object CarConnectionMonitor {
     private var started = false
     private val scope = CoroutineScope(Dispatchers.IO)
 
+    @Volatile
+    private var autoEnabled = false
+
     fun start(context: Context) {
         if (started) return
         started = true
 
         val appContext = context.applicationContext
-        CarConnection(appContext).type.observeForever { connectionType ->
-            val isConnected = connectionType != CarConnection.CONNECTION_TYPE_NOT_CONNECTED
-            when {
-                isConnected && !wasConnected -> onConnected(appContext)
-                !isConnected && wasConnected -> onDisconnected(appContext)
+
+        // Mantenemos en memoria el valor de la preferencia para poder consultarlo de forma
+        // síncrona dentro del observer de CarConnection.
+        scope.launch {
+            PreferencesManager(appContext).isAutoTripTrackingEnabled.collect { enabled ->
+                autoEnabled = enabled
             }
-            wasConnected = isConnected
+        }
+
+        Handler(Looper.getMainLooper()).post {
+            CarConnection(appContext).type.observeForever { connectionType ->
+                val isConnected = connectionType != CarConnection.CONNECTION_TYPE_NOT_CONNECTED
+                when {
+                    isConnected && !wasConnected -> onConnected(appContext)
+                    !isConnected && wasConnected -> onDisconnected(appContext)
+                }
+                wasConnected = isConnected
+            }
         }
     }
 
@@ -54,14 +80,34 @@ object CarConnectionMonitor {
         scope.launch {
             val db = AppDatabase.getInstance(context)
             val vehicle = VehicleRepository(db.vehicleDao()).getActive().first() ?: return@launch
-            showStartPromptNotification(context, vehicle.id)
+
+            if (autoEnabled && hasLocationPermission(context)) {
+                val startedOk = runCatching {
+                    TripTrackingService.start(context, vehicle.id)
+                }.isSuccess
+                // Si el sistema bloqueó el arranque en background (Android 12+), al menos
+                // dejamos la notificación de un toque.
+                if (!startedOk) showStartPromptNotification(context, vehicle.id)
+            } else {
+                showStartPromptNotification(context, vehicle.id)
+            }
         }
     }
 
     private fun onDisconnected(context: Context) {
         if (!TripTracker.state.value.isTracking) return // no hay ningún viaje que finalizar
-        showFinishPromptNotification(context)
+
+        if (autoEnabled) {
+            TripTrackingService.stop(context)
+        } else {
+            showFinishPromptNotification(context)
+        }
     }
+
+    private fun hasLocationPermission(context: Context): Boolean =
+        ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
 
     private fun showStartPromptNotification(context: Context, vehicleId: Long) {
         val startIntent = Intent(context, TripTrackingService::class.java).apply {
